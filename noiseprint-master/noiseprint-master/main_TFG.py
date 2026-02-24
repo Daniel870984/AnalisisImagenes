@@ -59,9 +59,9 @@ def extraccion():
         # Construimos la ruta completa (ej: "dataset/iphone")
         rutaCompleta = os.path.join(carpetaDatos, d)
     
-    # Comprobamos si es una carpeta (modelo) y lo añadimos a la lista de modelos, si no, se ignora.
-    if os.path.isdir(rutaCompleta):
-        modelos.append(d) 
+        # Comprobamos si es una carpeta (modelo) y lo añadimos a la lista de modelos, si no, se ignora.
+        if os.path.isdir(rutaCompleta):
+            modelos.append(d) 
 
     if not modelos:
         print("No se han encontrado carpetas de modelos dentro de 'dataset/'.")
@@ -146,9 +146,9 @@ def entrenamiento():
         # Construimos la ruta completa (ej: "huellas/iphone")
         rutaCompleta = os.path.join(carpetaHuellas, d)
     
-    # Comprobamos si es una carpeta (modelo) y lo añadimos a la lista de modelos, si no, se ignora.
-    if os.path.isdir(rutaCompleta):
-        modelos.append(d) 
+        # Comprobamos si es una carpeta (modelo) y lo añadimos a la lista de modelos, si no, se ignora.
+        if os.path.isdir(rutaCompleta):
+            modelos.append(d) 
     
     if not os.path.exists(carpetaMaestras):
         os.makedirs(carpetaMaestras)
@@ -199,7 +199,7 @@ def test():
         print("Error: No hay huellas maestras. Ejecuta la Fase 2 primero.")
         return
     
-    modelosDisp = [os.path.basename(f).replace("MASTER_", "").replace(".npy", "") for f in huellasMaestras]
+    modelosDisp = [os.path.basename(f).replace("MAESTRA_", "").replace(".npy", "") for f in huellasMaestras]
     print(f"Modelos conocidos: {modelosDisp}")
 
     # Pedir ruta de la foto
@@ -237,8 +237,8 @@ def test():
         menosDist = float('inf')
 
         for modelo in modelosDisp:
-            ruta_master = os.path.join(carpetaMaestras, f"MASTER_{modelo}.npy")
-            master = np.load(ruta_master)
+            rutaMaster = os.path.join(carpetaMaestras, f"MAESTRA_{modelo}.npy")
+            master = np.load(rutaMaster)
             
             # Distancia Euclidiana
             dist = np.linalg.norm(huellaTest - master)
