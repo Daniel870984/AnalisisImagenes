@@ -94,9 +94,19 @@ def extraccion():
             nombreFoto = os.path.basename(foto_path)
             archivoSalida = os.path.join(carpetaDestino, nombreFoto.replace(".jpg", ".npz"))
             
-            # Si ya existe la huella, nos lo saltamos para ahorrar tiempo
-            if os.path.exists(archivoSalida):
-                print(f"  Ya existe la huella: {nombreFoto}")
+           # 1. ESTO ELIMINA CUALQUIER EXTENSIÓN (.jpg, .JPG, .jpeg...)
+            nombreSinExt = os.path.splitext(nombreFoto)[0]
+            
+            # 2. DEFINIMOS EL NOMBRE QUE YA TIENES (con la posible doble extensión)
+            # Para que te reconozca los que ya creaste como IMG_XXXX.JPG.npz
+            archivoSalidaExistente = os.path.join(carpetaDestino, nombreFoto + ".npz")
+            
+            # 3. DEFINIMOS EL NOMBRE "LIMPIO" (el que debería ser)
+            archivoSalidaLimpio = os.path.join(carpetaDestino, nombreSinExt + ".npz")
+
+            # Comprobamos si existe cualquiera de las dos versiones
+            if os.path.exists(archivoSalidaExistente) or os.path.exists(archivoSalidaLimpio):
+                print(f"   [SKIP] Ya existe la huella para: {nombreFoto}")
                 continue
 
             try:
