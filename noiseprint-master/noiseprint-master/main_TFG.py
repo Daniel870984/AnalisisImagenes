@@ -28,6 +28,11 @@ import glob
 import numpy as np
 import time
 
+from PIL import Image
+import prnu
+# --- Importamos funciones de PRNU ---
+from prnu.functions import extract_single, zero_mean_total, wiener_dft, crosscorr_2d, pce
+
 # --- Importamos las funciones del proyecto Noiseprint ---
 from noiseprint.noiseprint import genNoiseprint
 from noiseprint.utility.utilityRead import imread2f, jpeg_qtableinv
@@ -272,12 +277,20 @@ def test():
 def main():
     while True:
         print("\n" + "="*40)
-        print("   CLASIFICADOR DE CÁMARAS NOISEPRINT")
-        print("="*40)
-        print("1. Extraer huellas de las fotos (Dataset -> .npz)")
-        print("2. Calcular Huella Maestra (Entrenar)")
-        print("3. Verificar una imagen (Test)")
-        print("4. Salir")
+        print("  CLASIFICADOR FORENSE (NOISEPRINT vs PRNU)")
+        print("================================================")
+        print("--- NOISEPRINT (Deep Learning) ---")
+        print("1. Extraer huellas Noiseprint (.npz)")
+        print("2. Calcular Huella Maestra Noiseprint")
+        print("3. Verificar imagen con Noiseprint")
+        print("")
+        print("--- PRNU (Sensor Físico) ---")
+        print("4. Extraer huellas PRNU (.npy)")
+        print("5. Calcular Huella Maestra PRNU")
+        print("6. Verificar imagen con PRNU")
+        print("")
+        print("7. Salir")
+        print("================================================")
         
         opcion = input("\nElige una opción (1-4): ")
 
@@ -288,6 +301,15 @@ def main():
         elif opcion == '3':
             test()
         elif opcion == '4':
+            print("\n--- FASE PRNU: EXTRAER HUELLAS ---")
+            print("Funcionalidad PRNU aún no implementada.")
+        elif opcion == '5':
+            print("\n--- FASE PRNU: CALCULAR MAESTRA ---")
+            print("Funcionalidad PRNU aún no implementada.")
+        elif opcion == '6':
+            print("\n--- FASE PRNU: VERIFICAR IMAGEN ---")
+            print("Funcionalidad PRNU aún no implementada.")
+        elif opcion == '7':
             print("¡Bye!")
             break
         else:
