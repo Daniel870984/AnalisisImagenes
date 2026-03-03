@@ -422,6 +422,72 @@ def testNoiseprint():
     except Exception as e:
         print(f"Error durante el análisis: {e}")
 
+    
+def testPRNU():
+    print("\n--- FASE 3: VERIFICAR UNA IMAGEN (PRNU) ---")
+    
+    # Buscar modelos disponibles (Maestras PRNU)
+    huellasMaestras = glob.glob(os.path.join(carpetaMaestrasPRNU, "MAESTRA_PRNU_*.npy"))
+    if not huellasMaestras:
+        print("Error: No hay huellas maestras PRNU. Ejecuta la Fase 2 primero.")
+        return
+    
+    # Limpiamos el nombre para sacar solo el modelo
+    modelosDisp = [os.path.basename(f).replace("MAESTRA_PRNU_", "").replace(".npy", "") for f in huellasMaestras]
+    print(f"Modelos conocidos: {modelosDisp}")
+
+    # Pedir ruta de la foto
+    rutaImagen = input("Arrastra aquí la imagen a analizar y pulsa Enter: ").strip().strip('"').strip("'")
+    
+    if not os.path.exists(rutaImagen):
+        print("Error: El archivo no existe.")
+        return
+
+    print(f"Analizando: {os.path.basename(rutaImagen)}...")
+    
+    try:
+        # 1. Extraer huella al vuelo (Motor PRNU)
+        img = np.asarray(Image.open(rutaImagen))
+        res = extract_single(img)
+        
+        # 2. Recorta para comparar con las maestras (1024x1024 del centro)
+        h, w = res.shape
+        if h < tamañoRecorte or w < tamañoRecorte:
+            print("Error: La imagen es demasiado pequeña para compararla.")
+            return
+
+        cy, cx = h // 2, w // 2
+        dy, dx = tamañoRecorte // 2, tamañoRecorte // 2
+        huellaTest = res[cy-dy:cy+dy, cx-dx:cx+dx]
+
+        # 3. Comparar
+        print(f"\n{'MODELO':<15} | {'CORRELACIÓN PCE (¡Mayor es mejor!)':<35}")
+        print("-" * 55)
+        
+        mejorModelo = "Desconocido"
+        maxPCE = float('-inf') # ATENCIÓN: Iniciamos en menos infinito porque buscamos el MÁXIMO
+
+        for modelo in modelosDisp:
+            rutaMaster = os.path.join(carpetaMaestrasPRNU, f"MAESTRA_PRNU_{modelo}.npy")
+            master = np.load(rutaMaster)
+            
+            # --- Métrica PRNU: Correlación Cruzada 2D y PCE ---
+            cc = crosscorr_2d(master, huellaTest)
+            pce_val = pce(cc)['pce']
+            
+            print(f"{modelo:<15} | {pce_val:.4f}")
+            
+            # Si el pico de correlación es el más alto hasta ahora, es nuestro candidato
+            if pce_val > maxPCE:
+                maxPCE = pce_val
+                mejorModelo = modelo
+        
+        print("-" * 55)
+        print(f" CONCLUSIÓN: La imagen pertenece al -> [ {mejorModelo.upper()} ]\n")
+
+    except Exception as e:
+        print(f"Error durante el análisis: {e}")
+
 # ===============
 # MENÚ PRINCIPAL
 # ===============
