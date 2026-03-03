@@ -251,8 +251,8 @@ def entrenamientoNoiseprint():
         if os.path.isdir(rutaCompleta):
             modelos.append(d) 
     
-    if not os.path.exists(carpetaMaestras):
-        os.makedirs(carpetaMaestras)
+    if not os.path.exists(carpetaMaestrasNoiseprint):
+        os.makedirs(carpetaMaestrasNoiseprint)
 
     # Para cada modelo, calculamos la huella maestra (media de todas las huellas individuales)
     for modelo in modelos:
@@ -282,8 +282,73 @@ def entrenamientoNoiseprint():
 
         if count > 0:
             master = suma / count # Calculamos la media para obtener la huella maestra del modelo
-            rutaSalida = os.path.join(carpetaMaestras, f"MAESTRA_{modelo}.npy")
+            rutaSalida = os.path.join(carpetaMaestrasNoiseprint, f"MAESTRA_{modelo}.npy")
             np.save(rutaSalida, master)
+            print(f"   [GUARDADO] {rutaSalida}")
+        else:
+            print("   No se pudo calcular la media.")
+
+
+
+def entrenamientoPRNU():
+    print("\n--- FASE 2: CÁLCULO DE HUELLAS MAESTRAS (PRNU) ---")
+    
+    if not os.path.exists(carpetaHuellasPRNU):
+        print("Error: No hay carpeta de huellas PRNU. Ejecuta la Fase 1 primero.")
+        return
+
+    modelos = []
+    todosLosItems = os.listdir(carpetaHuellasPRNU)
+
+    for d in todosLosItems:
+        # Construimos la ruta completa (ej: "huellasPRNU/iphone15")
+        rutaCompleta = os.path.join(carpetaHuellasPRNU, d)
+    
+        # Comprobamos si es una carpeta (modelo) y lo añadimos a la lista de modelos, si no, se ignora.
+        if os.path.isdir(rutaCompleta):
+            modelos.append(d) 
+    
+    if not os.path.exists(carpetaMaestrasPRNU):
+        os.makedirs(carpetaMaestrasPRNU)
+
+    # Para cada modelo, calculamos la huella maestra (media de todas las huellas individuales)
+    for modelo in modelos:
+        rutaNPY = os.path.join(carpetaHuellasPRNU, modelo, "*.npy")
+        archivos = glob.glob(rutaNPY)
+        
+        if not archivos:
+            print(f"-> {modelo}: No hay archivos .npy.")
+            continue
+
+        print(f"-> Calculando promedio de '{modelo}' con {len(archivos)} huellas PRNU...")
+        
+        suma = None
+        count = 0
+        
+        for archivo in archivos:
+            try:
+                # En PRNU, el .npy contiene directamente la matriz (no es un diccionario como el .npz)
+                huella = np.load(archivo)
+                if suma is None:
+                    suma = huella.astype(np.float64) # Convertimos a float64 para evitar problemas de precisión
+                else:
+                    suma += huella
+                count += 1
+            except:
+                print(f"   Error leyendo {os.path.basename(archivo)}")
+
+        if count > 0:
+            huella_media = suma / count # Calculamos la media (Estimador de Máxima Verosimilitud)
+            
+            # --- PASO CRÍTICO DE PRNU: LIMPIEZA DE ARTEFACTOS ---
+            # Borramos patrones compartidos por todos los móviles de esa marca
+            print("   Aplicando Zero-Mean Total y filtro Wiener DFT...")
+            huella_media_zm = zero_mean_total(huella_media)
+            master_limpia = wiener_dft(huella_media_zm, huella_media_zm.std(ddof=1))
+            
+            # Guardamos la huella maestra final ya limpia
+            rutaSalida = os.path.join(carpetaMaestrasPRNU, f"MAESTRA_PRNU_{modelo}.npy")
+            np.save(rutaSalida, master_limpia)
             print(f"   [GUARDADO] {rutaSalida}")
         else:
             print("   No se pudo calcular la media.")
@@ -295,7 +360,7 @@ def testNoiseprint():
     print("\n--- FASE 3: VERIFICAR UNA IMAGEN ---")
     
     # Buscar modelos disponibles (Maestras)
-    huellasMaestras = glob.glob(os.path.join(carpetaMaestras, "MAESTRA_*.npy"))
+    huellasMaestras = glob.glob(os.path.join(carpetaMaestrasNoiseprint, "MAESTRA_*.npy"))
     if not huellasMaestras:
         print("Error: No hay huellas maestras. Ejecuta la Fase 2 primero.")
         return
@@ -338,7 +403,7 @@ def testNoiseprint():
         menosDist = float('inf')
 
         for modelo in modelosDisp:
-            rutaMaster = os.path.join(carpetaMaestras, f"MAESTRA_{modelo}.npy")
+            rutaMaster = os.path.join(carpetaMaestrasNoiseprint, f"MAESTRA_{modelo}.npy")
             master = np.load(rutaMaster)
             
             # Distancia Euclidiana
