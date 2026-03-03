@@ -43,13 +43,15 @@ from noiseprint.utility.utilityRead import imread2f, jpeg_qtableinv
 # ==============================
 tamañoRecorte = 1024          # Tamaño del recorte central (1024x1024 píxeles)
 carpetaDatos = "TFG/dataset"   # Carpeta con las fotos originales (organizadas por móvil)
-carpetaHuellas = "TFG/huellas" # Carpeta para guardar los .npz procesados
-carpetaMaestras = "TFG/maestras" # Carpeta para guardar las Huellas Maestras (.npy)
+carpetaHuellasNoiseprint = "TFG/huellasNoiseprint" # Carpeta para guardar los .npz procesados
+carpetaMaestrasNoiseprint = "TFG/maestrasNoiseprint" # Carpeta para guardar las Huellas Maestras (.npy)
+carpetaHuellasPRNU = "TFG/huellasPRNU" # Carpeta para guardar las huellas PRNU (.npy)
+carpetaMaestrasPRNU = "TFG/maestrasPRNU" # Carpeta para guardar las Huellas Maestras PRNU (.npy)
 
 # =======================
 # 1. FASE DE EXTRACCIÓN
 # =======================
-def extraccion():
+def extraccionNoiseprint():
     print("\n--- FASE 1: EXTRACCIÓN Y RECORTES ---")
     
     # Detectar carpetas de modelos automáticamente
@@ -77,8 +79,8 @@ def extraccion():
     if confirm.lower() != 's': return
 
     # Aseguramos que la carpeta de huellas exista
-    if not os.path.exists(carpetaHuellas):
-        os.makedirs(carpetaHuellas)
+    if not os.path.exists(carpetaHuellasNoiseprint):
+        os.makedirs(carpetaHuellasNoiseprint)
 
     # Contamos el tiempo para medir el rendimiento
     tiempoInicio = time.time()
@@ -88,8 +90,8 @@ def extraccion():
         rutaFotos = os.path.join(carpetaDatos, modelo, "*.jpg")
         listaFotos = glob.glob(rutaFotos)
         
-        carpetaDestino = os.path.join(carpetaHuellas, modelo)
-        # Aseguramos que la carpeta de destino (huellas/iphone15) exista
+        carpetaDestino = os.path.join(carpetaHuellasNoiseprint, modelo)
+        # Aseguramos que la carpeta de destino (huellasNoiseprint/iphone15) exista
         if not os.path.exists(carpetaDestino):
             os.makedirs(carpetaDestino)
 
@@ -144,22 +146,106 @@ def extraccion():
 
     print(f"\n--- Fin de extracción. {totalFotos} nuevas huellas generadas en {time.time()-tiempoInicio:.1f}s. ---")
 
+
+
+def extraccionPRNU():
+    print("\n--- FASE 1: EXTRACCIÓN Y RECORTES (PRNU) ---")
+    
+    # Detectar carpetas de modelos automáticamente
+    if not os.path.exists(carpetaDatos):
+        print(f"Error: No existe la carpeta que contiene las imágenes base '{carpetaDatos}'.")
+        return
+
+    modelos = []
+    todosLosItems = os.listdir(carpetaDatos)
+
+    for d in todosLosItems:
+        rutaCompleta = os.path.join(carpetaDatos, d)
+        if os.path.isdir(rutaCompleta):
+            modelos.append(d) 
+
+    if not modelos:
+        print("No se han encontrado carpetas de modelos dentro de 'dataset/'.")
+        return
+
+    print(f"Modelos detectados: {modelos}")
+    confirm = input("¿Quieres procesar todas las fotos de estos modelos con PRNU? (s/n): ")
+    if confirm.lower() != 's': return
+
+    
+    if not os.path.exists(carpetaHuellasPRNU):
+        os.makedirs(carpetaHuellasPRNU)
+
+    tiempoInicio = time.time()
+    totalFotos = 0
+
+    for modelo in modelos:
+        rutaFotos = os.path.join(carpetaDatos, modelo, "*.jpg")
+        listaFotos = glob.glob(rutaFotos)
+        
+        carpetaDestino = os.path.join(carpetaHuellasPRNU, modelo)
+        if not os.path.exists(carpetaDestino):
+            os.makedirs(carpetaDestino)
+
+        print(f"\n-> Procesando {modelo} con PRNU ({len(listaFotos)} fotos)...")
+
+        for foto_path in listaFotos:
+            nombreFoto = os.path.basename(foto_path)
+            
+            # Nombres de archivo (cambiamos .npz por .npy)
+            nombreSinExt = os.path.splitext(nombreFoto)[0]
+            archivoSalidaExistente = os.path.join(carpetaDestino, nombreFoto + ".npy")
+            archivoSalidaLimpio = os.path.join(carpetaDestino, nombreSinExt + ".npy")
+
+            if os.path.exists(archivoSalidaExistente) or os.path.exists(archivoSalidaLimpio):
+                print(f"   [SKIP] Ya existe la huella PRNU para: {nombreFoto}")
+                continue
+
+            try:
+                # 1. Leer imagen: la librería espera un array numpy RGB de tipo uint8 [cite: 73, 141-144]
+                img = np.asarray(Image.open(foto_path))
+                
+                # 2. Extraer PRNU: Pasa la imagen por el filtro Wavelet [cite: 1, 9, 31]
+                # NOTA: No hace falta el QF porque PRNU ignora la calidad JPEG, busca defectos físicos [cite: 36, 148]
+                res = extract_single(img)
+
+                # 3. Recortar centro (La misma lógica que en Noiseprint)
+                h, w = res.shape
+                if h < tamañoRecorte or w < tamañoRecorte:
+                    print(f"   [AVISO] {nombreFoto} muy pequeña ({h}x{w}). Ignorada.")
+                    continue
+
+                cy, cx = h // 2, w // 2
+                dy, dx = tamañoRecorte // 2, tamañoRecorte // 2
+                recorte = res[cy-dy:cy+dy, cx-dx:cx+dx]
+
+                # 4. Guardar: como PRNU es solo una matriz de ruido, usamos np.save puro (.npy)
+                np.save(archivoSalidaLimpio, recorte)
+                
+                print(f"   [OK] {nombreFoto}")
+                totalFotos += 1
+
+            except Exception as e:
+                print(f"   [ERROR] {nombreFoto}: {e}")
+
+    print(f"\n--- Fin de extracción PRNU. {totalFotos} nuevas huellas generadas en {time.time()-tiempoInicio:.1f}s. ---")
+
 # ===========================================
 # 2. FASE DE ENTRENAMIENTO (CALCULAR MAESTRA)
 # ===========================================
-def entrenamiento():
+def entrenamientoNoiseprint():
     print("\n--- FASE 2: CÁLCULO DE HUELLAS MAESTRAS ---")
     
-    if not os.path.exists(carpetaHuellas):
+    if not os.path.exists(carpetaHuellasNoiseprint):
         print("Error: No hay carpeta de huellas. Ejecuta la Fase 1 primero.")
         return
 
     modelos = []
-    todosLosItems = os.listdir(carpetaHuellas)
+    todosLosItems = os.listdir(carpetaHuellasNoiseprint)
 
     for d in todosLosItems:
         # Construimos la ruta completa (ej: "huellas/iphone")
-        rutaCompleta = os.path.join(carpetaHuellas, d)
+        rutaCompleta = os.path.join(carpetaHuellasNoiseprint, d)
     
         # Comprobamos si es una carpeta (modelo) y lo añadimos a la lista de modelos, si no, se ignora.
         if os.path.isdir(rutaCompleta):
@@ -170,7 +256,7 @@ def entrenamiento():
 
     # Para cada modelo, calculamos la huella maestra (media de todas las huellas individuales)
     for modelo in modelos:
-        rutaNPZ = os.path.join(carpetaHuellas, modelo, "*.npz")
+        rutaNPZ = os.path.join(carpetaHuellasNoiseprintNoiseprint, modelo, "*.npz")
         archivos = glob.glob(rutaNPZ)
         
         if not archivos:
@@ -205,7 +291,7 @@ def entrenamiento():
 # ================================
 # 3. FASE DE VERIFICACIÓN / TEST
 # ================================
-def test():
+def testNoiseprint():
     print("\n--- FASE 3: VERIFICAR UNA IMAGEN ---")
     
     # Buscar modelos disponibles (Maestras)
@@ -276,7 +362,7 @@ def test():
 # ===============
 def main():
     while True:
-        print("\n" + "="*40)
+        print("\n" + "="*48)
         print("  CLASIFICADOR FORENSE (NOISEPRINT vs PRNU)")
         print("================================================")
         print("--- NOISEPRINT (Deep Learning) ---")
@@ -292,23 +378,20 @@ def main():
         print("7. Salir")
         print("================================================")
         
-        opcion = input("\nElige una opción (1-4): ")
+        opcion = input("\nElige una opción (1-7): ")
 
         if opcion == '1':
-            extraccion()
+            extraccionNoiseprint()
         elif opcion == '2':
-            entrenamiento()
+            entrenamientoNoiseprint()
         elif opcion == '3':
-            test()
+            testNoiseprint()
         elif opcion == '4':
-            print("\n--- FASE PRNU: EXTRAER HUELLAS ---")
-            print("Funcionalidad PRNU aún no implementada.")
+            extraccionPRNU()
         elif opcion == '5':
-            print("\n--- FASE PRNU: CALCULAR MAESTRA ---")
-            print("Funcionalidad PRNU aún no implementada.")
+            entrenamientoPRNU()
         elif opcion == '6':
-            print("\n--- FASE PRNU: VERIFICAR IMAGEN ---")
-            print("Funcionalidad PRNU aún no implementada.")
+            testPRNU()
         elif opcion == '7':
             print("¡Bye!")
             break
