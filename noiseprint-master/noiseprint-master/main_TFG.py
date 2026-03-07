@@ -256,7 +256,7 @@ def entrenamientoNoiseprint():
 
     # Para cada modelo, calculamos la huella maestra (media de todas las huellas individuales)
     for modelo in modelos:
-        rutaNPZ = os.path.join(carpetaHuellasNoiseprintNoiseprint, modelo, "*.npz")
+        rutaNPZ = os.path.join(carpetaHuellasNoiseprint, modelo, "*.npz")
         archivos = glob.glob(rutaNPZ)
         
         if not archivos:
@@ -488,6 +488,124 @@ def testPRNU():
     except Exception as e:
         print(f"Error durante el análisis: {e}")
 
+
+
+def evaluacionGlobal():
+    print("\n--- FASE 4: EVALUACIÓN MASIVA CON MATRIZ DE CONFUSIÓN ---")
+    
+    carpetaTests = "test" # Carpeta con subcarpetas por modelo, cada una con fotos de prueba (sin procesar)
+    if not os.path.exists(carpetaTests):
+        print(f"Error: No existe la carpeta '{carpetaTests}'.")
+        return
+
+    # 1. PREPARACIÓN: Cargar maestras
+    maestras_np = {}
+    for ruta in glob.glob(os.path.join(carpetaMaestras, "MAESTRA_*.npy")):
+        if "PRNU" not in ruta: 
+            modelo = os.path.basename(ruta).replace("MAESTRA_", "").replace(".npy", "")
+            maestras_np[modelo] = np.load(ruta)
+
+    maestras_prnu = {}
+    for ruta in glob.glob(os.path.join(carpetaMaestras, "MAESTRA_PRNU_*.npy")):
+        modelo = os.path.basename(ruta).replace("MAESTRA_PRNU_", "").replace(".npy", "")
+        maestras_prnu[modelo] = np.load(ruta)
+
+    modelos_test = [d for d in os.listdir(carpetaTests) if os.path.isdir(os.path.join(carpetaTests, d))]
+    
+    # 1.5 INICIALIZAR MATRICES DE CONFUSIÓN {Real: {Predicho: cantidad}}
+    modelos_pred_np = list(maestras_np.keys()) + ["Desconocido"]
+    modelos_pred_prnu = list(maestras_prnu.keys()) + ["Desconocido"]
+    
+    matriz_np = {real: {pred: 0 for pred in modelos_pred_np} for real in modelos_test}
+    matriz_prnu = {real: {pred: 0 for pred in modelos_pred_prnu} for real in modelos_test}
+
+    tiempo_inicio = time.time()
+
+    # 2. EVALUACIÓN FOTO A FOTO
+    for modelo_real in modelos_test:
+        rutaFotos = os.path.join(carpetaTests, modelo_real, "*.jpg")
+        listaFotos = glob.glob(rutaFotos)
+        
+        total_fotos = len(listaFotos)
+        if total_fotos == 0: continue
+            
+        print(f"\n-> Evaluando {total_fotos} fotos del modelo real: [ {modelo_real.upper()} ]")
+
+        for i, foto_path in enumerate(listaFotos):
+            nombreFoto = os.path.basename(foto_path)
+            print(f"   Analizando {i+1}/{total_fotos}: {nombreFoto}...", end=" ")
+            
+            try:
+                # --- EXTRACCIÓN AL VUELO ---
+                img_np, _ = imread2f(foto_path, channel=1)
+                img_prnu = np.asarray(Image.open(foto_path))
+                try: QF = jpeg_qtableinv(foto_path)
+                except: QF = 200
+
+                res_np = genNoiseprint(img_np, QF)
+                res_prnu = extract_single(img_prnu)
+
+                h, w = res_np.shape
+                cy, cx = h // 2, w // 2
+                dy, dx = tamañoRecorte // 2, tamañoRecorte // 2
+                
+                huella_test_np = res_np[cy-dy:cy+dy, cx-dx:cx+dx]
+                huella_test_prnu = res_prnu[cy-dy:cy+dy, cx-dx:cx+dx]
+
+                # --- COMPARACIÓN NOISEPRINT ---
+                mejor_np = "Desconocido"
+                menor_dist = float('inf')
+                for mod_maestra, master_np in maestras_np.items():
+                    dist = np.linalg.norm(huella_test_np - master_np)
+                    if dist < menor_dist:
+                        menor_dist = dist
+                        mejor_np = mod_maestra
+
+                # --- COMPARACIÓN PRNU ---
+                mejor_prnu = "Desconocido"
+                mayor_pce = float('-inf')
+                for mod_maestra, master_prnu in maestras_prnu.items():
+                    cc = crosscorr_2d(master_prnu, huella_test_prnu)
+                    pce_val = pce(cc)['pce']
+                    if pce_val > mayor_pce:
+                        mayor_pce = pce_val
+                        mejor_prnu = mod_maestra
+
+                # --- REGISTRAR EN LA MATRIZ ---
+                matriz_np[modelo_real][mejor_np] += 1
+                matriz_prnu[modelo_real][mejor_prnu] += 1
+                
+                print(f"NP: {mejor_np} | PRNU: {mejor_prnu}")
+
+            except Exception as e:
+                print(f" ERROR ({e})")
+                matriz_np[modelo_real]["Desconocido"] += 1
+                matriz_prnu[modelo_real]["Desconocido"] += 1
+
+    # 3. IMPRIMIR MATRICES DE CONFUSIÓN FINALES
+    print("\n" + "="*60)
+    print(" 📊 MATRICES DE CONFUSIÓN FINALES 📊")
+    print("="*60)
+
+    # Función auxiliar para imprimir las tablas bien alineadas
+    def imprimir_tabla(nombre_metodo, matriz, modelos_pred):
+        print(f"\n--- {nombre_metodo.upper()} ---")
+        # Cabecera
+        etiqueta = "REAL \\ PRED"
+        header = f"{etiqueta:<15} | " + " | ".join([f"{p:<12}" for p in modelos_pred])
+        print(header)
+        print("-" * len(header))
+        # Filas
+        for modelo_real, predicciones in matriz.items():
+            fila = f"{modelo_real:<15} | " + " | ".join([f"{predicciones[p]:<12}" for p in modelos_pred])
+            print(fila)
+
+    imprimir_tabla("NOISEPRINT", matriz_np, modelos_pred_np)
+    imprimir_tabla("PRNU", matriz_prnu, modelos_pred_prnu)
+
+    print("\n" + "-" * 60)
+    print(f"Tiempo total de evaluación: {(time.time() - tiempo_inicio)/60:.1f} minutos.")
+
 # ===============
 # MENÚ PRINCIPAL
 # ===============
@@ -506,10 +624,12 @@ def main():
         print("5. Calcular Huella Maestra PRNU")
         print("6. Verificar imagen con PRNU")
         print("")
-        print("7. Salir")
+        print("7. Evaluación Global")
+        print("")
+        print("8. Salir")
         print("================================================")
         
-        opcion = input("\nElige una opción (1-7): ")
+        opcion = input("\nElige una opción (1-8): ")
 
         if opcion == '1':
             extraccionNoiseprint()
@@ -524,6 +644,9 @@ def main():
         elif opcion == '6':
             testPRNU()
         elif opcion == '7':
+            evaluacionGlobal()
+            break
+        elif opcion == '8':
             print("¡Bye!")
             break
         else:
