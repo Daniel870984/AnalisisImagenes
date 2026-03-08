@@ -493,20 +493,20 @@ def testPRNU():
 def evaluacionGlobal():
     print("\n--- FASE 4: EVALUACIÓN MASIVA CON MATRIZ DE CONFUSIÓN ---")
     
-    carpetaTests = "test" # Carpeta con subcarpetas por modelo, cada una con fotos de prueba (sin procesar)
+    carpetaTests = "TFG/test" # Carpeta con subcarpetas por modelo, cada una con fotos de prueba (sin procesar)
     if not os.path.exists(carpetaTests):
         print(f"Error: No existe la carpeta '{carpetaTests}'.")
         return
 
     # 1. PREPARACIÓN: Cargar maestras
     maestras_np = {}
-    for ruta in glob.glob(os.path.join(carpetaMaestras, "MAESTRA_*.npy")):
+    for ruta in glob.glob(os.path.join(carpetaMaestrasNoiseprint, "MAESTRA_*.npy")):
         if "PRNU" not in ruta: 
             modelo = os.path.basename(ruta).replace("MAESTRA_", "").replace(".npy", "")
             maestras_np[modelo] = np.load(ruta)
 
     maestras_prnu = {}
-    for ruta in glob.glob(os.path.join(carpetaMaestras, "MAESTRA_PRNU_*.npy")):
+    for ruta in glob.glob(os.path.join(carpetaMaestrasPRNU, "MAESTRA_PRNU_*.npy")):
         modelo = os.path.basename(ruta).replace("MAESTRA_PRNU_", "").replace(".npy", "")
         maestras_prnu[modelo] = np.load(ruta)
 
