@@ -37,6 +37,11 @@ from prnu.functions import extract_single, zero_mean_total, wiener_dft, crosscor
 from noiseprint.noiseprint import genNoiseprint
 from noiseprint.utility.utilityRead import imread2f, jpeg_qtableinv
 
+# --- NUEVAS LIBRERÍAS PARA ESTADÍSTICAS Y PDF ---
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, matthews_corrcoef
+
 
 # ==============================
 # CONFIGURACIÓN DEL EXPERIMENTO
@@ -489,11 +494,55 @@ def testPRNU():
         print(f"Error durante el análisis: {e}")
 
 
+# ====================================
+# FUNCIÓN PARA GENERAR MÉTRICAS Y PDF 
+# ====================================
+def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo):
+    print(f"\n" + "="*50)
+    print(f"📊 RESULTADOS MÉTRICAS: {nombre_metodo.upper()} 📊")
+    print("="*50)
+
+    reporte = classification_report(y_real, y_pred, labels=clases_unicas, zero_division=0)
+    print("\n--- CLASSIFICATION REPORT ---")
+    print(reporte)
+
+    acc = accuracy_score(y_real, y_pred)
+    mcc = matthews_corrcoef(y_real, y_pred)
+    print(f"Accuracy Global: {acc:.4f} ({(acc*100):.2f}%)")
+    print(f"Matthews Corr. Coef. (MCC): {mcc:.4f}")
+
+    cm = confusion_matrix(y_real, y_pred, labels=clases_unicas)
+    
+    print("\n--- FALSOS POSITIVOS (FP) Y FALSOS NEGATIVOS (FN) ---")
+    for i, clase in enumerate(clases_unicas):
+        TP = cm[i, i]
+        FP = cm[:, i].sum() - TP 
+        FN = cm[i, :].sum() - TP
+        print(f"{clase:<22} -> FP: {FP:<4} | FN: {FN:<4}")
+
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                xticklabels=clases_unicas, yticklabels=clases_unicas)
+    
+    plt.title(f'Matriz de Confusión - {nombre_metodo}')
+    plt.ylabel('Clase Real')
+    plt.xlabel('Clase Predicha')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+    nombre_archivo = f"Estadísticas_{nombre_metodo}.pdf"
+    plt.savefig(nombre_archivo, format='pdf', bbox_inches='tight')
+    plt.close() 
+    
+    print(f"\n Gráfica guardada exitosamente como: {nombre_archivo}")
+    print("="*50)
+
+
 
 def evaluacionGlobal():
     print("\n--- FASE 4: EVALUACIÓN MASIVA CON MATRIZ DE CONFUSIÓN ---")
     
-    carpetaTests = "TFG/test" # Carpeta con subcarpetas por modelo, cada una con fotos de prueba (sin procesar)
+    carpetaTests = "TFG/test"
     if not os.path.exists(carpetaTests):
         print(f"Error: No existe la carpeta '{carpetaTests}'.")
         return
@@ -512,12 +561,13 @@ def evaluacionGlobal():
 
     modelos_test = [d for d in os.listdir(carpetaTests) if os.path.isdir(os.path.join(carpetaTests, d))]
     
-    # 1.5 INICIALIZAR MATRICES DE CONFUSIÓN {Real: {Predicho: cantidad}}
     modelos_pred_np = list(maestras_np.keys()) + ["Desconocido"]
     modelos_pred_prnu = list(maestras_prnu.keys()) + ["Desconocido"]
     
-    matriz_np = {real: {pred: 0 for pred in modelos_pred_np} for real in modelos_test}
-    matriz_prnu = {real: {pred: 0 for pred in modelos_pred_prnu} for real in modelos_test}
+    #Listas para almacenar resultados reales y predichos
+    lista_reales = []
+    lista_pred_np = []
+    lista_pred_prnu = []
 
     tiempo_inicio = time.time()
 
@@ -571,37 +621,22 @@ def evaluacionGlobal():
                         mayor_pce = pce_val
                         mejor_prnu = mod_maestra
 
-                # --- REGISTRAR EN LA MATRIZ ---
-                matriz_np[modelo_real][mejor_np] += 1
-                matriz_prnu[modelo_real][mejor_prnu] += 1
+                # Guardamos los resultados para las métricas globales
+                lista_reales.append(modelo_real)
+                lista_pred_np.append(mejor_np)
+                lista_pred_prnu.append(mejor_prnu)
                 
                 print(f"NP: {mejor_np} | PRNU: {mejor_prnu}")
 
             except Exception as e:
                 print(f" ERROR ({e})")
-                matriz_np[modelo_real]["Desconocido"] += 1
-                matriz_prnu[modelo_real]["Desconocido"] += 1
+                lista_reales.append(modelo_real)
+                lista_pred_np.append("Desconocido")
+                lista_pred_prnu.append("Desconocido")
 
-    # 3. IMPRIMIR MATRICES DE CONFUSIÓN FINALES
-    print("\n" + "="*60)
-    print(" 📊 MATRICES DE CONFUSIÓN FINALES 📊")
-    print("="*60)
-
-    # Función auxiliar para imprimir las tablas bien alineadas
-    def imprimir_tabla(nombre_metodo, matriz, modelos_pred):
-        print(f"\n--- {nombre_metodo.upper()} ---")
-        # Cabecera
-        etiqueta = "REAL \\ PRED"
-        header = f"{etiqueta:<15} | " + " | ".join([f"{p:<12}" for p in modelos_pred])
-        print(header)
-        print("-" * len(header))
-        # Filas
-        for modelo_real, predicciones in matriz.items():
-            fila = f"{modelo_real:<15} | " + " | ".join([f"{predicciones[p]:<12}" for p in modelos_pred])
-            print(fila)
-
-    imprimir_tabla("NOISEPRINT", matriz_np, modelos_pred_np)
-    imprimir_tabla("PRNU", matriz_prnu, modelos_pred_prnu)
+    # 3. MÉTRICAS Y PDF
+    evaluar_y_generar_pdf(lista_reales, lista_pred_np, modelos_pred_np, "NOISEPRINT")
+    evaluar_y_generar_pdf(lista_reales, lista_pred_prnu, modelos_pred_prnu, "PRNU")
 
     print("\n" + "-" * 60)
     print(f"Tiempo total de evaluación: {(time.time() - tiempo_inicio)/60:.1f} minutos.")
@@ -624,9 +659,10 @@ def main():
         print("5. Calcular Huella Maestra PRNU")
         print("6. Verificar imagen con PRNU")
         print("")
-        print("7. Evaluación Global")
+        print("7. Evaluación Global + Estadísticas")
         print("")
         print("8. Salir")
+        print("9. [TEST RÁPIDO] Probar generación de PDF")
         print("================================================")
         
         opcion = input("\nElige una opción (1-8): ")
@@ -649,6 +685,13 @@ def main():
         elif opcion == '8':
             print("¡Bye!")
             break
+        elif opcion == '9':
+            # --- PRUEBA RÁPIDA DE LA FUNCIÓN ---
+            print("\nGenerando PDF de prueba...")
+            clases = ["iphone14", "iphone15", "samsungS21", "Desconocido"]
+            reales =       ["iphone14", "iphone14", "iphone15", "samsungS21", "samsungS21"]
+            predicciones = ["iphone14", "Desconocido", "iphone15", "iphone15", "samsungS21"]
+            evaluar_y_generar_pdf(reales, predicciones, clases, "PRUEBA_RAPIDA")
         else:
             print("Opción no válida.")
 
