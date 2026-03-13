@@ -541,8 +541,22 @@ def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo):
 
 def evaluacionGlobal():
     print("\n--- FASE 4: EVALUACIÓN MASIVA CON MATRIZ DE CONFUSIÓN ---")
+
+    print("¿Qué dataset de prueba quieres evaluar?")
+    print("1. Fotos Originales (TFG/test)")
+    print("2. Fotos de WhatsApp (TFG/testWhatsApp)")
+    opc_test = input("Elige una opción (1 o 2): ")
     
-    carpetaTests = "TFG/test"
+    if opc_test == '1':
+        carpetaTests = "TFG/test"
+        etiqueta = "ORIGINALES"
+    elif opc_test == '2':
+        carpetaTests = "TFG/testWhatsApp"
+        etiqueta = "WHATSAPP"
+    else:
+        print("Opción no válida. Cancelando evaluación.")
+        return
+    
     if not os.path.exists(carpetaTests):
         print(f"Error: No existe la carpeta '{carpetaTests}'.")
         return
@@ -573,8 +587,11 @@ def evaluacionGlobal():
 
     # 2. EVALUACIÓN FOTO A FOTO
     for modelo_real in modelos_test:
-        rutaFotos = os.path.join(carpetaTests, modelo_real, "*.jpg")
-        listaFotos = glob.glob(rutaFotos)
+        # --- MODIFICADO: Buscamos ambas extensiones y sumamos los resultados ---
+        ruta_jpg = os.path.join(carpetaTests, modelo_real, "*.jpg")
+        ruta_jpeg = os.path.join(carpetaTests, modelo_real, "*.jpeg")
+        listaFotos = glob.glob(ruta_jpg) + glob.glob(ruta_jpeg)
+        # -----------------------------------------------------------------------
         
         total_fotos = len(listaFotos)
         if total_fotos == 0: continue
@@ -635,8 +652,8 @@ def evaluacionGlobal():
                 lista_pred_prnu.append("Desconocido")
 
     # 3. MÉTRICAS Y PDF
-    evaluar_y_generar_pdf(lista_reales, lista_pred_np, modelos_pred_np, "NOISEPRINT")
-    evaluar_y_generar_pdf(lista_reales, lista_pred_prnu, modelos_pred_prnu, "PRNU")
+    evaluar_y_generar_pdf(lista_reales, lista_pred_np, modelos_pred_np, f"NOISEPRINT_{etiqueta}")
+    evaluar_y_generar_pdf(lista_reales, lista_pred_prnu, modelos_pred_prnu, f"PRNU_{etiqueta}")
 
     print("\n" + "-" * 60)
     print(f"Tiempo total de evaluación: {(time.time() - tiempo_inicio)/60:.1f} minutos.")
