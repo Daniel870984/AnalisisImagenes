@@ -502,25 +502,39 @@ def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo):
     print(f"📊 RESULTADOS MÉTRICAS: {nombre_metodo.upper()} 📊")
     print("="*50)
 
+    # 1. Calculamos las métricas
     reporte = classification_report(y_real, y_pred, labels=clases_unicas, zero_division=0)
-    print("\n--- CLASSIFICATION REPORT ---")
-    print(reporte)
-
     acc = accuracy_score(y_real, y_pred)
     mcc = matthews_corrcoef(y_real, y_pred)
+    cm = confusion_matrix(y_real, y_pred, labels=clases_unicas)
+    
+    # Imprimir en consola como antes
+    print("\n--- CLASSIFICATION REPORT ---")
+    print(reporte)
     print(f"Accuracy Global: {acc:.4f} ({(acc*100):.2f}%)")
     print(f"Matthews Corr. Coef. (MCC): {mcc:.4f}")
 
-    cm = confusion_matrix(y_real, y_pred, labels=clases_unicas)
-    
-    print("\n--- FALSOS POSITIVOS (FP) Y FALSOS NEGATIVOS (FN) ---")
+    # 2. Preparamos el texto que se escribirá en el PDF
+    texto_pdf = f"Accuracy Global: {acc:.4f} ({(acc*100):.2f}%)\n"
+    texto_pdf += f"Matthews Corr. Coef. (MCC): {mcc:.4f}\n\n"
+    texto_pdf += reporte + "\n"
+
     for i, clase in enumerate(clases_unicas):
         TP = cm[i, i]
         FP = cm[:, i].sum() - TP 
         FN = cm[i, :].sum() - TP
-        print(f"{clase:<22} -> FP: {FP:<4} | FN: {FN:<4}")
+        linea_fp_fn = f"{clase:<22} -> FP: {FP:<4} | FN: {FN:<4}"
+        print(linea_fp_fn)
+        texto_pdf += linea_fp_fn + "\n"
 
-    plt.figure(figsize=(10, 8))
+    # 3. Dibujamos la Matriz y añadimos el texto
+    # Hacemos la figura más alta (10, 14) para que quepa el texto abajo
+    plt.figure(figsize=(10, 14))
+    
+    # Dejamos el 45% inferior de la imagen vacío para escribir ahí
+    plt.subplots_adjust(bottom=0.45) 
+    
+    # Pintamos el Heatmap en la parte superior
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
                 xticklabels=clases_unicas, yticklabels=clases_unicas)
     
@@ -528,15 +542,18 @@ def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo):
     plt.ylabel('Clase Real')
     plt.xlabel('Clase Predicha')
     plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
+    
+    # Insertamos el texto en el hueco que dejamos abajo. 
+    # Usamos 'monospace' para que las columnas del texto queden alineadas como en la terminal.
+    plt.figtext(0.1, 0.02, texto_pdf, fontsize=10, family='monospace', va='bottom')
 
+    # 4. Guardamos
     nombre_archivo = f"Estadísticas_{nombre_metodo}.pdf"
     plt.savefig(nombre_archivo, format='pdf', bbox_inches='tight')
     plt.close() 
     
-    print(f"\n Gráfica guardada exitosamente como: {nombre_archivo}")
+    print(f"\n✅ Gráfica y estadísticas guardadas exitosamente como: {nombre_archivo}")
     print("="*50)
-
 
 
 def evaluacionGlobal():
