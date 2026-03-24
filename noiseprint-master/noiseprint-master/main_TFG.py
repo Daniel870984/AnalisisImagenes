@@ -562,7 +562,8 @@ def evaluacionGlobal():
     print("¿Qué dataset de prueba quieres evaluar?")
     print("1. Fotos Originales (TFG/test)")
     print("2. Fotos de WhatsApp (TFG/testWhatsApp)")
-    opc_test = input("Elige una opción (1 o 2): ")
+    print("3. Experimento Device ID (TFG/testDevice)")
+    opc_test = input("Elige una opción (1,2 o 3): ")
     
     if opc_test == '1':
         carpetaTests = "TFG/test"
@@ -570,6 +571,9 @@ def evaluacionGlobal():
     elif opc_test == '2':
         carpetaTests = "TFG/testWhatsApp"
         etiqueta = "WHATSAPP"
+    elif opc_test == '3':
+        carpetaTests = "TFG/testDevice"
+        etiqueta = "DEVICE"
     else:
         print("Opción no válida. Cancelando evaluación.")
         return

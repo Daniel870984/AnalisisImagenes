@@ -109,6 +109,7 @@ venv.bak/
 TFG/dataset/
 TFG/test/
 TFG/testWhatsApp/
+TFG/testDevice/
 
 # Ignorar huellas individuales de cada foto
 TFG/huellasNoiseprint/
