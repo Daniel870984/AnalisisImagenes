@@ -528,11 +528,11 @@ def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo):
         texto_pdf += linea_fp_fn + "\n"
 
     # 3. Dibujamos la Matriz y añadimos el texto
-    # Hacemos la figura más alta (10, 14) para que quepa el texto abajo
-    plt.figure(figsize=(10, 14))
+    # Hacemos la figura más alta (12, 22) para que quepa todo sin apretujarse
+    plt.figure(figsize=(12, 22)) 
     
-    # Dejamos el 45% inferior de la imagen vacío para escribir ahí
-    plt.subplots_adjust(bottom=0.45) 
+    # Dejamos el 55% inferior de la imagen vacío (para las etiquetas largas y el texto)
+    plt.subplots_adjust(bottom=0.55) 
     
     # Pintamos el Heatmap en la parte superior
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
@@ -543,14 +543,13 @@ def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo):
     plt.xlabel('Clase Predicha')
     plt.xticks(rotation=45, ha='right')
     
-    # Insertamos el texto en el hueco que dejamos abajo. 
-    # Usamos 'monospace' para que las columnas del texto queden alineadas como en la terminal.
-    plt.figtext(0.1, 0.02, texto_pdf, fontsize=10, family='monospace', va='bottom')
+    # Magia aquí: va='top' y y=0.45. El texto empieza debajo de la gráfica y crece hacia abajo.
+    plt.figtext(0.1, 0.45, texto_pdf, fontsize=10, family='monospace', va='top')
 
     # 4. Guardamos
     nombre_archivo = f"Estadísticas_{nombre_metodo}.pdf"
     plt.savefig(nombre_archivo, format='pdf', bbox_inches='tight')
-    plt.close() 
+    plt.close()
     
     print(f"\n✅ Gráfica y estadísticas guardadas exitosamente como: {nombre_archivo}")
     print("="*50)
