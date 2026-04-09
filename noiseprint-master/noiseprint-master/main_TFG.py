@@ -562,17 +562,29 @@ def evaluacionGlobal():
     print("1. Fotos Originales (TFG/test)")
     print("2. Fotos de WhatsApp (TFG/testWhatsApp)")
     print("3. Experimento Device ID (TFG/testDevice)")
-    opc_test = input("Elige una opción (1,2 o 3): ")
+    print("4. Experimento Blanco y Negro (TFG/testBN)")
+    opc_test = input("Elige una opción (1,2, 3 o 4): ")
     
     if opc_test == '1':
         carpetaTests = "TFG/test"
         etiqueta = "ORIGINALES"
+        dirMaestrasNP = carpetaMaestrasNoiseprint 
+        dirMaestrasPRNU = carpetaMaestrasPRNU     
     elif opc_test == '2':
         carpetaTests = "TFG/testWhatsApp"
         etiqueta = "WHATSAPP"
+        dirMaestrasNP = carpetaMaestrasNoiseprint # Las globales normales
+        dirMaestrasPRNU = carpetaMaestrasPRNU     # Las globales normales
     elif opc_test == '3':
         carpetaTests = "TFG/testDevice"
         etiqueta = "DEVICE"
+        dirMaestrasNP = "TFG/maestrasNoiseprintDevice"
+        dirMaestrasPRNU = "TFG/maestrasPRNUDevice"     
+    elif opc_test == '4':
+        carpetaTests = "TFG/testBN"
+        etiqueta = "BLANCO Y NEGRO"
+        dirMaestrasNP = "TFG/maestrasNoiseprintBN" 
+        dirMaestrasPRNU = "TFG/maestrasPRNUBN"
     else:
         print("Opción no válida. Cancelando evaluación.")
         return
@@ -583,13 +595,13 @@ def evaluacionGlobal():
 
     # 1. PREPARACIÓN: Cargar maestras
     maestras_np = {}
-    for ruta in glob.glob(os.path.join(carpetaMaestrasNoiseprint, "MAESTRA_*.npy")):
+    for ruta in glob.glob(os.path.join(dirMaestrasNP, "MAESTRA_*.npy")):
         if "PRNU" not in ruta: 
             modelo = os.path.basename(ruta).replace("MAESTRA_", "").replace(".npy", "")
             maestras_np[modelo] = np.load(ruta)
 
     maestras_prnu = {}
-    for ruta in glob.glob(os.path.join(carpetaMaestrasPRNU, "MAESTRA_PRNU_*.npy")):
+    for ruta in glob.glob(os.path.join(dirMaestrasPRNU, "MAESTRA_PRNU_*.npy")):
         modelo = os.path.basename(ruta).replace("MAESTRA_PRNU_", "").replace(".npy", "")
         maestras_prnu[modelo] = np.load(ruta)
 
@@ -678,6 +690,52 @@ def evaluacionGlobal():
     print("\n" + "-" * 60)
     print(f"Tiempo total de evaluación: {(time.time() - tiempo_inicio)/60:.1f} minutos.")
 
+
+def crearDatasetBN():
+    """
+    Convierte todas las imágenes de la carpeta dataset_test a Blanco y Negro 
+    y las guarda en una nueva carpeta manteniendo la estructura.
+    """
+    carpeta_origen = "TFG/test"
+    carpeta_destino = "TFG/testBN"
+    
+    print("\n" + "="*50)
+    print(" INICIANDO CONVERSIÓN A BLANCO Y NEGRO (ESCALA DE GRISES)")
+    print("="*50)
+    
+    if not os.path.exists(carpeta_origen):
+        print(f"[ERROR] No se encuentra la carpeta origen: {carpeta_origen}")
+        return
+
+    contador = 0
+    for directorio_raiz, _, archivos in os.walk(carpeta_origen):
+        for archivo in archivos:
+            if archivo.lower().endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff')):
+                ruta_origen = os.path.join(directorio_raiz, archivo)
+                ruta_relativa = os.path.relpath(directorio_raiz, carpeta_origen)
+                ruta_destino_dir = os.path.join(carpeta_destino, ruta_relativa)
+                
+                if not os.path.exists(ruta_destino_dir):
+                    os.makedirs(ruta_destino_dir)
+                    
+                ruta_destino = os.path.join(ruta_destino_dir, archivo)
+                
+                # Solo procesar si la imagen no existe ya en el destino
+                if not os.path.exists(ruta_destino):
+                    try:
+                        imagen = Image.open(ruta_origen)
+                        imagen_bn = imagen.convert('L') 
+                        imagen_bn.save(ruta_destino, quality=100)
+                        contador += 1
+                        print(f"[OK] Convertida: {archivo}")
+                    except Exception as e:
+                        print(f"[ERROR] Fallo en {archivo}: {e}")
+                
+    print("\n" + "-"*50)
+    print(f" Proceso finalizado. {contador} imágenes nuevas generadas.")
+    print(f" Carpeta destino: {carpeta_destino}")
+    print("-"*50 + "\n")
+
 # ===============
 # MENÚ PRINCIPAL
 # ===============
@@ -698,11 +756,15 @@ def main():
         print("")
         print("7. Evaluación Global + Estadísticas")
         print("")
-        print("8. Salir")
+        print("8. Conversion a Blanco y Negro (para el experimento testBN)")
+        print("")
         print("9. [TEST RÁPIDO] Probar generación de PDF")
+        print("")
+
+        print("10. Salir")
         print("================================================")
         
-        opcion = input("\nElige una opción (1-8): ")
+        opcion = input("\nElige una opción (1-10): ")
 
         if opcion == '1':
             extraccionNoiseprint()
@@ -720,7 +782,7 @@ def main():
             evaluacionGlobal()
             break
         elif opcion == '8':
-            print("¡Bye!")
+            crearDatasetBN()
             break
         elif opcion == '9':
             # --- PRUEBA RÁPIDA DE LA FUNCIÓN ---
@@ -729,6 +791,9 @@ def main():
             reales =       ["iphone14", "iphone14", "iphone15", "samsungS21", "samsungS21"]
             predicciones = ["iphone14", "Desconocido", "iphone15", "iphone15", "samsungS21"]
             evaluar_y_generar_pdf(reales, predicciones, clases, "PRUEBA_RAPIDA")
+        elif opcion == '10':
+            print("¡Bye!")
+            break
         else:
             print("Opción no válida.")
 

@@ -110,6 +110,7 @@ TFG/dataset/
 TFG/test/
 TFG/testWhatsApp/
 TFG/testDevice/
+TFG/testBN/
 
 # Ignorar huellas individuales de cada foto
 TFG/huellasNoiseprint/
