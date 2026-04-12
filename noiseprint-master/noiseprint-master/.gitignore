@@ -111,6 +111,7 @@ TFG/test/
 TFG/testWhatsApp/
 TFG/testDevice/
 TFG/testBN/
+TFG/testBelleza/
 
 # Ignorar huellas individuales de cada foto
 TFG/huellasNoiseprint/
@@ -124,3 +125,6 @@ TFG/huellasPRNU/
 !MAESTRA_*.npy
 !TFG/maestrasNoiseprint/
 !TFG/maestrasPRNU/
+!TFG/maestrasNoiseprintDevice/
+!TFG/maestrasPRNUDevice/
+!TFG/maestrasPRNUBN/

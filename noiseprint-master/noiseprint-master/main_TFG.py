@@ -564,6 +564,7 @@ def evaluacionGlobal():
     print("2. Fotos de WhatsApp (TFG/testWhatsApp)")
     print("3. Experimento Device ID (TFG/testDevice)")
     print("4. Experimento Blanco y Negro (TFG/testBN)")
+    print("5. Experimento Filtrado Belleza (TFG/testBelleza)")
     opc_test = input("Elige una opción (1,2, 3 o 4): ")
     
     if opc_test == '1':
@@ -574,8 +575,8 @@ def evaluacionGlobal():
     elif opc_test == '2':
         carpetaTests = "TFG/testWhatsApp"
         etiqueta = "WHATSAPP"
-        dirMaestrasNP = carpetaMaestrasNoiseprint # Las globales normales
-        dirMaestrasPRNU = carpetaMaestrasPRNU     # Las globales normales
+        dirMaestrasNP = carpetaMaestrasNoiseprint
+        dirMaestrasPRNU = carpetaMaestrasPRNU     
     elif opc_test == '3':
         carpetaTests = "TFG/testDevice"
         etiqueta = "DEVICE"
@@ -586,6 +587,11 @@ def evaluacionGlobal():
         etiqueta = "BLANCO Y NEGRO"
         dirMaestrasNP = "TFG/maestrasNoiseprintBN" 
         dirMaestrasPRNU = "TFG/maestrasPRNUBN"
+    elif opc_test == '5':
+        carpetaTests = "TFG/testBelleza"
+        etiqueta = "FILTRO BELLEZA"
+        dirMaestrasNP = carpetaMaestrasNoiseprint 
+        dirMaestrasPRNU = carpetaMaestrasPRNU
     else:
         print("Opción no válida. Cancelando evaluación.")
         return
@@ -620,11 +626,10 @@ def evaluacionGlobal():
 
     # 2. EVALUACIÓN FOTO A FOTO
     for modelo_real in modelos_test:
-        # --- MODIFICADO: Buscamos ambas extensiones y sumamos los resultados ---
+
         ruta_jpg = os.path.join(carpetaTests, modelo_real, "*.jpg")
         ruta_jpeg = os.path.join(carpetaTests, modelo_real, "*.jpeg")
         listaFotos = glob.glob(ruta_jpg) + glob.glob(ruta_jpeg)
-        # -----------------------------------------------------------------------
         
         total_fotos = len(listaFotos)
         if total_fotos == 0: continue
@@ -636,31 +641,30 @@ def evaluacionGlobal():
             print(f"   Analizando {i+1}/{total_fotos}: {nombreFoto}...", end=" ")
             
             try:
-                # --- EXTRACCIÓN AL VUELO ---
-                #img_np, _ = imread2f(foto_path, channel=1)
+                # Extraemos ambas huellas al vuelo (Noiseprint y PRNU) para esta foto de prueba
+                img_np, _ = imread2f(foto_path, channel=1)
                 img_prnu = np.asarray(Image.open(foto_path))
-                #try: QF = jpeg_qtableinv(foto_path)
-                #except: QF = 200
+                try: QF = jpeg_qtableinv(foto_path)
+                except: QF = 200
 
-                #res_np = genNoiseprint(img_np, QF)
+                res_np = genNoiseprint(img_np, QF)
                 res_prnu = extract_single(img_prnu)
 
-                #h, w = res_np.shape
-                h, w = res_prnu.shape #extra
+                h, w = res_np.shape
                 cy, cx = h // 2, w // 2
                 dy, dx = tamañoRecorte // 2, tamañoRecorte // 2
                 
-                #huella_test_np = res_np[cy-dy:cy+dy, cx-dx:cx+dx]
+                huella_test_np = res_np[cy-dy:cy+dy, cx-dx:cx+dx]
                 huella_test_prnu = res_prnu[cy-dy:cy+dy, cx-dx:cx+dx]
 
                 # --- COMPARACIÓN NOISEPRINT ---
-                #mejor_np = "Desconocido"
-                #menor_dist = float('inf')
-                #for mod_maestra, master_np in maestras_np.items():
-                #    dist = np.linalg.norm(huella_test_np - master_np)
-                #    if dist < menor_dist:
-                #        menor_dist = dist
-                #        mejor_np = mod_maestra
+                mejor_np = "Desconocido"
+                menor_dist = float('inf')
+                for mod_maestra, master_np in maestras_np.items():
+                    dist = np.linalg.norm(huella_test_np - master_np)
+                    if dist < menor_dist:
+                        menor_dist = dist
+                        mejor_np = mod_maestra
 
                 # --- COMPARACIÓN PRNU ---
                 mejor_prnu = "Desconocido"
@@ -674,10 +678,10 @@ def evaluacionGlobal():
 
                 # Guardamos los resultados para las métricas globales
                 lista_reales.append(modelo_real)
-                #lista_pred_np.append(mejor_np)
+                lista_pred_np.append(mejor_np)
                 lista_pred_prnu.append(mejor_prnu)
                 
-                #print(f"NP: {mejor_np} | PRNU: {mejor_prnu}")
+                print(f"NP: {mejor_np} | PRNU: {mejor_prnu}")
 
             except Exception as e:
                 print(f" ERROR ({e})")
@@ -686,7 +690,7 @@ def evaluacionGlobal():
                 lista_pred_prnu.append("Desconocido")
 
     # 3. MÉTRICAS Y PDF
-    #evaluar_y_generar_pdf(lista_reales, lista_pred_np, modelos_pred_np, f"NOISEPRINT_{etiqueta}")
+    evaluar_y_generar_pdf(lista_reales, lista_pred_np, modelos_pred_np, f"NOISEPRINT_{etiqueta}")
     evaluar_y_generar_pdf(lista_reales, lista_pred_prnu, modelos_pred_prnu, f"PRNU_{etiqueta}")
 
     print("\n" + "-" * 60)
@@ -742,7 +746,7 @@ def crearDatasetBN():
 
 def crearDatasetFiltroBelleza():
    
-    carpeta_origen = "TFG/testBN"
+    carpeta_origen = "TFG/test"
     carpeta_destino = "TFG/testBelleza"
     
     print("\n" + "="*50)
@@ -802,69 +806,6 @@ def crearDatasetFiltroBelleza():
 
 
 
-
-def debug_prnu_10_fotos():
-    print("\n" + "="*50)
-    print(" INICIANDO DEBUG: 10 FOTOS PRNU (BLANCO Y NEGRO)")
-    print("="*50)
-
-    # --- CONFIGURACIÓN DE RUTAS ---
-    ruta_maestra_14 = "TFG/maestrasPRNUDevice/MAESTRA_PRNU_iphone14.npy"
-    ruta_maestra_14_2 = "TFG/maestrasPRNUDevice/MAESTRA_PRNU_iphone14_2.npy"
-    
-    # Ruta a las fotos de test
-    carpeta_fotos = "TFG/test/iphone14_2"
-    
-    # ------------------------------
-
-    # 1. Cargar las dos huellas maestras
-    try:
-        master_14 = np.load(ruta_maestra_14)
-        master_14_2 = np.load(ruta_maestra_14_2)
-        print("[OK] Huellas maestras cargadas correctamente.")
-    except Exception as e:
-        print(f"[ERROR] No se pudieron cargar las huellas maestras: {e}")
-        return
-
-    # 2. Coger solo las primeras 10 fotos
-    fotos = glob.glob(os.path.join(carpeta_fotos, "*.jpg")) + glob.glob(os.path.join(carpeta_fotos, "*.jpeg"))
-    fotos = fotos[:10]
-    
-    if len(fotos) == 0:
-        print(f"[ERROR] No se encontraron fotos en {carpeta_fotos}")
-        return
-
-    print(f"Evaluando {len(fotos)} fotos...\n")
-
-    # 3. Bucle de extracción y comparación
-    for foto_path in fotos:
-        nombre_foto = os.path.basename(foto_path)
-        try:
-            # Extraer huella de la foto
-            img_prnu = np.asarray(Image.open(foto_path))
-            res_prnu = extract_single(img_prnu) # Tu función de extracción PRNU
-            
-            # Recortar al centro (asumiendo tu tamañoRecorte habitual, ej. 512)
-            # Si tu variable tamañoRecorte es global, el código la cogerá sola. 
-            # Si no, pon aquí el número a mano (ej. dy = 256)
-            h, w = res_prnu.shape
-            cy, cx = h // 2, w // 2
-            dy, dx = tamañoRecorte // 2, tamañoRecorte // 2 
-            huella_test = res_prnu[cy-dy:cy+dy, cx-dx:cx+dx]
-
-            # Comparar contra iphone14 (el incorrecto)
-            cc_14 = crosscorr_2d(master_14, huella_test)
-            pce_14 = pce(cc_14)['pce']
-
-            # Comparar contra iphone14_2 (el correcto)
-            cc_14_2 = crosscorr_2d(master_14_2, huella_test)
-            pce_14_2 = pce(cc_14_2)['pce']
-
-            # Imprimir resultados visualmente claros
-            print(f"Foto: {nombre_foto:<15} | PCE vs iPhone14: {pce_14:>6.2f}  |  PCE vs iPhone14_2: {pce_14_2:>6.2f}")
-
-        except Exception as e:
-            print(f"Foto: {nombre_foto:<15} | [ERROR AL PROCESAR: {e}]")
 
 # ===============
 # MENÚ PRINCIPAL
@@ -928,9 +869,6 @@ def main():
             evaluar_y_generar_pdf(reales, predicciones, clases, "PRUEBA_RAPIDA")
         elif opcion == '11':
             print("¡Bye!")
-            break
-        elif opcion == '12':
-            debug_prnu_10_fotos()
             break
         else:
             print("Opción no válida.")
