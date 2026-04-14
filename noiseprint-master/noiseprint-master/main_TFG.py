@@ -3,14 +3,13 @@ import warnings
 
 
 
-# 1. Silenciar advertencias de Python (Deprecated, FutureWarnings, etc.)
+# Silenciar advertencias de Python (Deprecated, FutureWarnings, etc.)
 warnings.filterwarnings("ignore")
 
-# 2. Silenciar los mensajes internos de TensorFlow (C++)
-# 0 = todo, 1 = info, 2 = warnings, 3 = errors (solo fatal)
+# Silenciar los mensajes internos de TensorFlow 0 = todo, 1 = info, 2 = warnings, 3 = errors (solo fatal)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-# 3. Silenciar el logger de TensorFlow (Python)
+# Silenciar el logger de TensorFlow (Python)
 import tensorflow as tf
 try:
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -20,7 +19,6 @@ except AttributeError:
     except:
         pass
 
-# ------------------------------------------
 
 
 
@@ -31,14 +29,14 @@ import cv2
 
 from PIL import Image
 import prnu
-# --- Importamos funciones de PRNU ---
+# Importamos funciones de PRNU
 from prnu.functions import extract_single, zero_mean_total, wiener_dft, crosscorr_2d, pce
 
-# --- Importamos las funciones del proyecto Noiseprint ---
+# Importamos las funciones del proyecto Noiseprint
 from noiseprint.noiseprint import genNoiseprint
 from noiseprint.utility.utilityRead import imread2f, jpeg_qtableinv
 
-# --- NUEVAS LIBRERÍAS PARA ESTADÍSTICAS Y PDF ---
+# Librerías para métricas y visualización
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, matthews_corrcoef

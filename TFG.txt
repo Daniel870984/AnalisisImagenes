@@ -1,0 +1,281 @@
+REUNIONES INICIALES
+3 Enfoques -> 3 TFGs -> Decidir uno de estos temas (investigar por donde tirar)
+
+Identificación del modelo de móvil a través del análisis de las imágenes de la cámara
+identificación del móvil a través del postprocesado, evaluar la detección tras la compresión de la imagen a través de aplicaciones de mensajería instantánea(wasap, insta...)
+Identificación de DeepFakes…
+
+Director -> Ricardo (no sabe mucho del tema)
+Codirector -> José Roldán (Experto en ML, compañero de investigación de Ricardo)
+Primer Artículo, ver qué se ha conseguido: Noiseprint: A CNN-Based Camera Model Fingerprint
+Reuniones Semanales o cada 2
+100h Memoria + 200h Investigación y elaboración
+
+
+
+
+
+SITIO WEB INVESTIGACIÓN
+https://sir.unizar.es/simplesamlphp/module.php/core/loginuserpass.php?AuthState=_971eb91177b0b4f4847891bbce5c5bd607793c428f%3Ahttps%3A%2F%2Fsir.unizar.es%2Fsimplesamlphp%2Fsaml2%2Fidp%2FSSOService.php%3Fspentityid%3Dhttps%253A%252F%252Funizar.idm.oclc.org%252Fshibboleth%26RelayState%3Dezp.2cjE2NDkxJGh0dHBzOi8vaWVlZXhwbG9yZS5pZWVlLm9yZy94cGwvUmVjZW50SXNzdWUuanNwP3B1bnVtYmVyPTEwNzIzMTU0%26cookieTime%3D1770228450
+
+
+BASE DE DATOS FOTOGRAFÍAS
+https://data.csafe.iastate.edu/Multi-Camid/
+
+
+
+PRIMEROS PASOS
+Familiarizarse con el código de Noiseprint
+Instalar miniconda3 (gestor de entornos) -> Viene con el motor python para ejecutarlo y compilarlo y con conda
+conda create -n noiseprint python=3.6 (crear entorno)
+conda activate noiseprint (entrar al entorno)
+pip install tensorflow==1.15 (instalar tensorflow antiguo compatible con el código noiseprint 2018-2019)
+pip install numpy==1.16.4 scipy==1.2.0 matplotlib==3.0.3 Pillow (resto bibliotecas)
+pip install opencv-python==4.3.0.36 scipy PyWavelets Pillow
+pip install scikit-learn==0.24.2 tqdm
+pip install scikit-learn matplotlib seaborn
+
+
+
+CODIGO PRNU
+https://github.com/polimi-ispl/prnu-python
+
+
+
+
+ESTRUCTURA PROYECTO NOISEPRINT
+/demo pues una demo
+/noiseprint
+	/feat_spam Subtractive Pixel Adjacency Matrix. Es una técnica clásica de forense digital que analiza la relación entre un píxel y sus vecinos.
+		mapping.py Se encarga de reducir la complejidad y ahorrar memoria
+		residue.py Se encarga de definir los filtros matemáticos que eliminan la imagen (la cara, el paisaje) y dejan solo el "residuo"
+		spam_np_opt.py Actúa como un "contador" que aplica estadística clásica (Cadenas de Markov) para analizar el ruido.
+	/nets
+		/net_jpg52 hay una para cada calidad de imagen, al subir una foto se detecta que red hay que utilizar
+			.meta es el esqueleto de la red (capas, arquitectura...)
+			.data son los millones de pesos y números
+			.index es un mapa para saber dónde buscar cada peso dentro del archivo de datos
+	/utility
+		gaussianMixture.py Se usa exclusivamente para la Localización de Falsificaciones (main_blind.py). algoritmo de Clustering (Agrupamiento como K-medias) probabilístico. (irrelevante)
+		utilityRead.py Este archivo lee y normaliza tu imagen para que la entienda la IA, pero su función crítica es detectar automáticamente la Calidad JPEG
+	network.py Define la arquitectura física de la Red Neuronal. Es lo que vas a explicar en tu capítulo de "Fundamentos Teóricos" o "Metodología".
+	noiseprint.py Es el script que conecta todo. Es el que carga el cerebro (network.py) y le da las órdenes.
+	noiseprint_blind.py Llama a noiseprint para sacar el ruido y luego intenta buscar zonas "raras" o inconsistentes usando modelos estadísticos. (irrelevante)
+	post_em.py Usa el algoritmo EM (Expectation-Maximization) para agrupar píxeles. Es matemáticas pura para separar el ruido en "grupos" (irrelevante)
+main_extraction.py
+	Este es el script más importante. Es el que extrae la "huella dactilar" de la cámara.
+	¿Qué hace?
+	Carga tu imagen (imread2f).
+	Calcula automáticamente la calidad JPEG (jpeg_qtableinv).
+	Llama a la red neuronal (genNoiseprint) para extraer el ruido.
+	Guarda el resultado en un archivo .npz o .mat.
+main_showout.py
+	Como el archivo .npz que genera el script anterior son solo números matemáticos, necesitas este script para "ver" qué ha pasado.
+	¿Qué hace?
+	Lee la imagen original y la huella .npz.
+	Recorta los bordes (34 píxeles) para evitar artefactos de borde (res[34:-34, ...]).
+	Muestra dos imágenes lado a lado: la foto original y el ruido extraído (Noiseprint).
+
+main_blind.py Ejecuta todo el proceso de blind localization (extracción + análisis estadístico EM + mapas de calor). (irrelevante)
+main_map2uint8 Convierte el "mapa de calor" (heatmap) de las zonas sospechosas a una imagen PNG visible. (irrelevante)
+main_showres.py Es un script de evaluación. Compara el mapa de calor detectado con la "verdad" (Ground Truth) para calcular la precisión del algoritmo detectando falsificaciones. (irrelevante)
+
+
+
+
+Resumen General de lo que voy a usar
+
+1. El Jefe: main_extraction.py (Tú ejecutas este)
+Es tu panel de control. Es el único script que llamarás desde la consola para procesar tus fotos.
+Función:
+Recibe tu foto (imgfilename) y dónde quieres guardar la huella (outfilename).
+Llama a las herramientas auxiliares para leer la imagen.
+Llama al cerebro (genNoiseprint) para procesarla.
+Guarda el resultado final en un archivo .npz.
+Por qué es relevante: Es tu herramienta de extracción masiva. Sin él, no hay datos.
+
+2. El Analista: utility/utilityRead.py (Automático)
+Este script es fundamental aunque no lo ejecutes directamente. main_extraction.py lo usa internamente.
+Función Clave: Contiene la función jpeg_qtableinv.
+Por qué es relevante:
+Cuando le pasas una foto, este script no solo lee la imagen, sino que "hackea" los metadatos para averiguar la Calidad JPEG (QF) (ej. 70, 85, 99).
+Esto es vital porque le dice al sistema qué "cerebro" debe cargar. Si este fichero falla, se cargaría una red neuronal incorrecta y la huella saldría mal.
+
+3. El Gestor: noiseprint.py (Automático)
+Es el intermediario que conecta tu petición con la Inteligencia Artificial.
+Función Clave: genNoiseprint(img, QF).
+Por qué es relevante:
+Toma el número de calidad (QF) que calculó el "Analista".
+Va a la carpeta nets/ y busca la carpeta exacta para esa calidad (ej. nets/net_jpg85).
+Carga los pesos de la red y procesa la imagen.
+Si la imagen es gigante (más de 10 megapíxeles), se encarga de cortarla en trocitos y volver a pegarla para que no te quedes sin memoria RAM.
+
+4. El Cerebro: network.py (La Arquitectura)
+Aquí está definida la estructura matemática de la red neuronal.
+Función: Define la clase FullConvNet.
+Por qué es relevante: Para tu memoria escrita (Capítulo de Metodología). Aquí es donde ves que es una red de 17 capas con conexiones residuales (res). Es el código que realmente separa el ruido del contenido. Tú no lo tocas, pero tienes que saber explicar que existe.
+
+5. La Memoria: Carpeta nets/ (Los Datos)
+Aunque no es código Python, es parte crítica.
+Contenido: Archivos .data, .index, .meta.
+Por qué es relevante: Son las redes ya entrenadas. Sin esta carpeta, noiseprint.py daría error porque no tendría "cerebros" que cargar.
+
+6. El Visualizador: main_showout.py (Herramienta de Diagnóstico)
+Función: Lee el archivo .npz que generaste y te muestra la imagen del ruido.
+Por qué es relevante: Para comprobar que todo funciona y para generar imágenes para tu documento PDF.
+
+
+
+
+
+
+ESTRUCTURA SCRIPT GLOBAL
+
+extraccionNoiseprint()
+Qué le entra: 
+	Las fotos originales de la carpeta dataset.
+Qué hace: 
+	1. Detección dinámica: Escanea automáticamente cuántos modelos de teléfono hay, sin tener que hardcodear los nombres en el código.
+	2. Optimización (Skip): Comprueba si la huella de esa foto ya se calculó en el pasado. Si es así, se la salta. Esto te ahorra horas de computación en caso de que el script se corte a la mitad.
+	3. Procesado CNN: Pasa la foto a escala de grises y extrae su "Quality Factor" (la compresión JPEG). Luego, alimenta con esto a la red neuronal (genNoiseprint) para extraer los artefactos del software.
+	4. Normalización (Recorte): Como las fotos pueden tener distintos tamaños según el móvil, la función hace un recorte exacto del centro matemático de la imagen (tamañoRecorte x tamañoRecorte). Esto asegura que luego las matrices 	se puedan comparar de forma justa, alineando los centros.
+Qué sale: 
+	Un archivo comprimido .npz por cada foto, que guarda tanto la huella matemática como la compresión original.
+
+
+extraccionPRNU()
+Qué le entra: 
+	Las mismas fotos originales del dataset.
+Qué hace:
+	1.Flujo paralelo: Sigue la misma lógica de carpetas y optimización que el anterior, pero cambia la forma de "mirar" la foto.
+	2.Lectura en crudo: A diferencia de Noiseprint (que usa grises), aquí lees la imagen como una matriz NumPy RGB (np.asarray(Image.open)). Esto es vital porque el PRNU necesita ver cómo reaccionan los píxeles de color reales a la 	luz.
+	3.Filtro Wavelet: Pasa la imagen por la función extract_single, que utiliza un filtro de eliminación de ruido (Wavelet) para separar el contenido de la foto (el cielo, el sofá) del "ruido de fondo" físico del sensor de silicio.
+	4.Recorte y Guardado: Hace el mismo recorte central para normalizar el tamaño y guarda la matriz de ruido pura en un archivo .npy.
+
+entrenamientoNoiseprint()
+Qué le entra: 
+	Las decenas de matrices individuales .npz que extrajiste en la Fase 1.
+Qué hace: 
+	1. Agrupación: Recorre la carpeta de cada modelo y va apilando matemáticamente todos los residuos de Noiseprint.
+	2. Como estamos sumando decenas de matrices enormes de píxeles, forzamos la matriz a float64 antes de sumar para garantizar una precisión matemática mejor.
+	3. La Media: Divide esa suma gigante entre el número de fotos para obtener el promedio perfecto.
+Qué sale: 
+	El archivo MAESTRA_{modelo}.npy, que es el destilado puro de cómo ese modelo específico comprime y procesa las imágenes mediante software.
+
+entrenamientoPRNU()
+Esta función es la "joya de la corona" a nivel de procesamiento de señal. Aquí no te limitas a hacer una simple media, sino que aplicas filtros forenses avanzados.
+
+Qué le entra: 
+	Las huellas individuales .npy de la Fase 1.
+Qué hace:
+	1.Estimador de Máxima Verosimilitud (MLE): Hace el mismo proceso seguro de suma en float64 y división para sacar la media bruta del ruido del sensor.
+	2.La Limpieza: La media bruta no sirve porque contiene artefactos que son idénticos en todos los teléfonos de la misma marca (como la rejilla de compresión JPEG o el patrón de interpolación de color del fabricante). Si no borras 	esto, un iPhone 14 daría positivo con la huella de otro iPhone 14 distinto.
+	3.zero_mean_total: Resta la media de filas y columnas para eliminar esos artefactos compartidos (como el efecto "persiana" del procesado).
+	4.wiener_dft: Aplica un filtro de Wiener en el dominio de la frecuencia (Transformada Discreta de Fourier - DFT) para aplastar cualquier ruido periódico no deseado y dejar exclusivamente el defecto físico del silicio de ese 	dispositivo en concreto.
+Qué sale: 
+	El archivo MAESTRA_PRNU_{modelo}.npy, una huella de hardware purificada y lista para ir a juicio.
+
+testNoiseprint()
+Qué hace la función: 
+	Toma una foto nueva, le extrae el residuo de software al vuelo y lo compara contra todos los "DNI" de la Fase 2.
+El Concepto Matemático: Usas la Distancia Euclidiana (np.linalg.norm).
+El Pitch: "Para Noiseprint, estamos comparando características matemáticas de un modelo de IA. Por lo tanto, la huella de prueba y la maestra se tratan como puntos en un espacio multidimensional. Mi algoritmo calcula la distancia geométrica exacta entre ellos: cuanta menos distancia (menos diferencia de artefactos), más se parecen. Por eso busco el valor mínimo (float('inf'))."
+
+testPRNU()
+Qué hace la función: Extrae el ruido físico al vuelo y busca a qué teléfono pertenece.
+El Concepto Matemático (Para explicarlo):
+La Métrica: Usas Correlación Cruzada 2D y PCE (Peak Correlation Energy).
+El Pitch: "Con el PRNU la filosofía cambia radicalmente. Aquí no medimos "distancias", sino alineación geométrica. Lo que hace la función crosscorr_2d es deslizar la huella de prueba sobre la maestra en todas las direcciones posibles. Si los defectos del sensor encajan como una llave en una cerradura, se produce una explosión de energía matemática: el PCE. Cuanto más alto sea el pico, mayor es la certeza forense. Por eso aquí busco el valor máximo partiendo de infinito negativo (float('-inf'))."
+
+crearDatasetBN()
+Qué le entra: 
+	Toda la estructura de carpetas del dataset de prueba original.
+Qué hace: 
+	1. Replicación de entorno: Recorre recursivamente las carpetas y clona la estructura exacta en un nuevo directorio (testBN).
+	2. Conversión segura: Utiliza la librería PIL para aplicar el modo 'L' (Luminancia). Esto hace una mezcla lineal estandarizada de los canales RGB.
+	3. Control de variables (¡Muy importante!): Al guardarla, fuerzas el parámetro quality=100.
+
+crearDatasetBelleza()
+Qué hace:
+	Filtro Bilateral: Pasa la foto por una matriz espacial y de color (15, 75, 75) para planchar el ruido del sensor (PRNU) respetando los bordes de los objetos.
+	El truco del espacio LAB: (¡Este es el punto fuerte a explicar!) Convierte la imagen de BGR a LAB. ¿Por qué? Porque el canal 'L' es la Luz, y 'A' y 'B' son los colores.
+	CLAHE: Aplica la ecualización adaptativa solo al canal L. Si se lo aplicaras a la foto normal, los colores se volverían radiactivos y falsos. Luego vuelve a juntar los canales.
+
+
+
+
+EXPERIMENTOS/PRUEBAS LLEVADOS A CABO
+
+
+EXPERIMENTO INICIAL resultados investigación 08/03/26
+
+Modelo Analizado,	NOISEPRINT (IA),	PRNU (Matemática Clásica),	Diferencia / Ganador
+iPhone 14 (Natural),	98.0% (49/50),		96.0% (48/50),			Empate Técnico (Ambos excelentes)
+iPhone 15 (Natural),	90.0% (45/50),		28.0% (14/50),			Noiseprint por goleada
+Samsung S21 (Natural),	81.6% (40/49),		24.5% (12/49),			Noiseprint por goleada
+Note 10 (Flatfield),	100% (50/50),		100% (50/50),			Empate (Condiciones de laboratorio)
+Note 10 (Natural),	66.0% (33/50)*,		72.0% (36/50)*,			PRNU gana por poco
+*De las 50 fotos del Note 10 natural, el PRNU mandó 28 a la maestra Flatfield y solo 8 a la maestra Natural. Noiseprint mandó 24 a la Natural y 9 a la Flatfield. Se cuentan como acierto de dispositivo.
+
+1. El fin del PRNU en la era de la Fotografía Computacional
+Tus datos demuestran empíricamente que el paradigma ha cambiado. En sensores tradicionales con poco postprocesamiento (iPhone 14), el PRNU clásico sigue siendo increíblemente fiable (96%). Sin embargo, ante las técnicas modernas de Pixel Binning, HDR extremo y Denoising por IA, el PRNU colapsa por completo, cayendo a tasas de acierto inaceptables para la ciencia forense: un 28% en el iPhone 15 y un triste 24.5% en el Samsung S21. La huella física de silicio es destruida por el software antes de guardarse en la galería.
+
+2. La superioridad de las Redes Neuronales (Noiseprint)
+Frente al fracaso del PRNU en dispositivos modernos, la Inteligencia Artificial demuestra ser la solución de futuro. Noiseprint logró identificar el iPhone 15 con un 90% de precisión y el Samsung S21 con un 81.6%. Esto confirma tu hipótesis principal: las redes neuronales no buscan una cuadrícula rígida de píxeles, sino que aprenden la "firma del software" y los patrones de compresión de la marca, haciéndolas inmunes al agresivo procesado moderno.
+
+3. El fenómeno del "Scene Leakage" y la dependencia del Flatfield
+El experimento del Samsung Note 10 es tu obra maestra metodológica. Has demostrado matemáticamente que el método PRNU es frágil frente al contenido de la imagen.
+Cuando el PRNU operó en condiciones ideales de laboratorio (Maestra Flatfield vs Test Flatfield), obtuvo un 100% de éxito.
+Sin embargo, cuando probaste fotos naturales (con texturas, árboles, bordes), el PRNU huyó de su propia maestra natural porque estaba demasiado contaminada, intentando emparejarse con la maestra plana. Esto demuestra que las texturas hacen interferencia y bajan el pico de correlación PCE.
+
+4. Resumen general de la investigación
+Como conclusión global de tu proyecto: las técnicas de Source Camera Identification (SCI) basadas únicamente en las imperfecciones del hardware (PRNU) están quedando obsoletas en el mercado móvil actual. Para mantener la seguridad y fiabilidad en los juicios y peritajes forenses, los analistas deben migrar a herramientas basadas en Deep Learning, capaces de sobrevivir a la compresión de redes sociales, al temblor de la mano del usuario y a la "magia" computacional de Apple y Samsung.
+
+
+EXPERIMENTO WAS resultados investigación 15/03/26
+La "lavandería" de WhatsApp aniquila el PRNU y engaña vilmente al sesgo de fabricante de Noiseprint.
+Objetivo: Evaluar la robustez de los algoritmos frente a la agresiva compresión algorítmica de los servidores de mensajería.
+Conclusiones: Comprobaste cómo el reescalado y la compresión JPEG de Meta transforman la imagen lo suficiente como para empezar a mermar la fiabilidad forense de las huellas originales.
+PRNU era completamente aleatorio mientras que Noiseprint identifica el patrón de compresión de whatsapp a uno o dos huellas y todas las imágenes las clasificaba como esos modelos
+
+
+
+EXPERIMENTO Device ID 22/03/26
+Objetivo: Establecer la línea base. Comprobar si PRNU y Noiseprint son capaces de identificar dispositivos en condiciones normales (imágenes originales sin alterar).
+Tuve que repetirlo por un error que se me cruzaron las huellas maestras de dos dispositivos
+Conclusiones: El código funciona a la perfección. El PRNU es infalible en móviles "antiguos" o con poco post-procesado (iPhone 14 da 100% de acierto), pero sufre enormemente contra la fotografía computacional de los modelos recientes (iPhone 15, S21). Los algoritmos nativos de Apple y Samsung borran el ruido físico del sensor antes de guardar la foto. PRNU mejor en Device ID pero Noiseprint es el ganador en cuanto a post-procesado moderno
+
+
+
+EXPERIMENTO BN 06/04/26
+Objetivo: Comprobar si la pérdida total de la información de color (espacio cromático) destruye la biometría.
+Conclusiones: Éxito total, ambos algoritmos sobreviven.
+PRNU: Demostró que, al ser el B/N una mezcla lineal de canales, la posición espacial exacta de las imperfecciones del sensor no se mueve. El PCE (correlación) se mantuvo altísimo (ej. iPhone 14).
+Noiseprint: Confirmó que la red neuronal no busca "colores", sino estructuras, perfiles de compresión y artefactos de bordes. Todo eso sigue ahí en escala de grises.
+
+
+
+EXPERIMENTO FILTROS NO LINEALES 13/04/26
+Objetivo: Atacar a los algoritmos con matemáticas asimétricas y adaptativas. He usado OpenCV para aplicar un suavizado inteligente de bordes (Filtro Bilateral) y una alteración de contraste local por zonas (CLAHE).
+Conclusiones: Destrucción total
+PRNU: Cae por completo. Al alterar la luz y las sombras localmente (por cuadrículas), el patrón geométrico del sensor se desincroniza.
+Noiseprint: Es engañado brutalmente. El filtro borra los artefactos del software original de la cámara y sobreescribe los suyos propios. Tanto es así, que el algoritmo se confundió y empezó a clasificar casi todo como si fuera un iPhone 15 o un S21 (asumiendo que las marcas artificiales del filtro eran el post-procesado agresivo de esos dos móviles).
+
+
+
+EXPERIMENTO CAPTURA IN-APP 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
