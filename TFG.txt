@@ -264,6 +264,19 @@ Por último, aplico un filtro de Wiener en el dominio de la frecuencia (wiener_d
 Lo que me devuelve esta función es la huella dactilar geométrica del sensor, lista para ser comparada.
 
 
+
+DISTANCIA EUCLIDIANA VS CORRELACION CRUZADA 2D
+
+Noiseprint mide espacio y geometría. Noiseprint extrae "mapas de características", Quieres que la distancia entre ambos sea cero. Cuanto más pequeña es la distancia, 
+más idénticas son las huellas. Por eso buscas el mínimo. 
+
+PRNU mide resonancia, el numerador del famoso PCE es la Correlación, Se calcula multiplicando los valores uno a uno y sumando el resultado.  Si las dos huellas son de 
+cámaras distintas (ruido aleatorio diferente), al multiplicarlas, los picos positivos y negativos se cancelan entre sí. El resultado es ruido plano (casi 0). Si las dos 
+huellas son del mismo sensor, sus picos microscópicos coinciden exactamente. Al multiplicarlos, se produce una "resonancia" o amplificación matemática, generando un pico
+de energía gigante. Por eso se busca el máximo.
+
+
+
 EXPERIMENTOS/PRUEBAS LLEVADOS A CABO
 
 

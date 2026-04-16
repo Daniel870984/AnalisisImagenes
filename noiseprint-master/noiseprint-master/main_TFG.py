@@ -67,7 +67,7 @@ def extraccionNoiseprint():
     todosLosItems = os.listdir(carpetaDatos)
 
     for d in todosLosItems:
-        # Construimos la ruta completa (ej: "dataset/iphone")
+        # Construimos la ruta completa (ej: "dataset/iphone15")
         rutaCompleta = os.path.join(carpetaDatos, d)
     
         # Comprobamos si es una carpeta (modelo) y lo añadimos a la lista de modelos, si no, se ignora.
@@ -105,14 +105,13 @@ def extraccionNoiseprint():
             nombreFoto = os.path.basename(foto_path)
             archivoSalida = os.path.join(carpetaDestino, nombreFoto.replace(".jpg", ".npz"))
             
-           # 1. ESTO ELIMINA CUALQUIER EXTENSIÓN (.jpg, .JPG, .jpeg...)
+           # Eliminamos cualquier extensión para crear un nombre limpio (ej: 20221122_120811)
             nombreSinExt = os.path.splitext(nombreFoto)[0]
             
-            # 2. DEFINIMOS EL NOMBRE QUE YA TIENES (con la posible doble extensión)
-            # Para que te reconozca los que ya creaste como IMG_XXXX.JPG.npz
+            # Definimos el nombre "existente", porque al principio los guardé con este formato
             archivoSalidaExistente = os.path.join(carpetaDestino, nombreFoto + ".npz")
             
-            # 3. DEFINIMOS EL NOMBRE "LIMPIO" (el que debería ser)
+            # Definimos el nombre sin extension -> 20221122_120811.npz
             archivoSalidaLimpio = os.path.join(carpetaDestino, nombreSinExt + ".npz")
 
             # Comprobamos si existe cualquiera de las dos versiones
@@ -121,7 +120,7 @@ def extraccionNoiseprint():
                 continue
 
             try:
-                # Leer imagen y calidad (igual que en el código original)
+                # Leer imagen y calidad
                 img, mode = imread2f(foto_path, channel=1) # Leemos la imagen en escala de grises (channel=1)
                 try: QF = jpeg_qtableinv(foto_path) # Intentamos detectar la calidad JPEG, si falla, asumimos la máxima calidad (200)
                 except: QF = 200
@@ -196,7 +195,7 @@ def extraccionPRNU():
         for foto_path in listaFotos:
             nombreFoto = os.path.basename(foto_path)
             
-            # Nombres de archivo (cambiamos .npz por .npy)
+            # Nombres de archivo, en PRNU es npy, no npz, porque solo guardamos la matriz de ruido sin el QF ni otros datos.
             nombreSinExt = os.path.splitext(nombreFoto)[0]
             archivoSalidaExistente = os.path.join(carpetaDestino, nombreFoto + ".npy")
             archivoSalidaLimpio = os.path.join(carpetaDestino, nombreSinExt + ".npy")
@@ -206,14 +205,13 @@ def extraccionPRNU():
                 continue
 
             try:
-                # 1. Leer imagen: la librería espera un array numpy RGB de tipo uint8 [cite: 73, 141-144]
+                # Leer imagen
                 img = np.asarray(Image.open(foto_path))
                 
-                # 2. Extraer PRNU: Pasa la imagen por el filtro Wavelet [cite: 1, 9, 31]
-                # NOTA: No hace falta el QF porque PRNU ignora la calidad JPEG, busca defectos físicos [cite: 36, 148]
+                # Extraer PRNU: Pasa la imagen por el filtro Wavelet
                 res = extract_single(img)
 
-                # 3. Recortar centro (La misma lógica que en Noiseprint)
+                # Recortar centro
                 h, w = res.shape
                 if h < tamañoRecorte or w < tamañoRecorte:
                     print(f"   [AVISO] {nombreFoto} muy pequeña ({h}x{w}). Ignorada.")
@@ -223,7 +221,7 @@ def extraccionPRNU():
                 dy, dx = tamañoRecorte // 2, tamañoRecorte // 2
                 recorte = res[cy-dy:cy+dy, cx-dx:cx+dx]
 
-                # 4. Guardar: como PRNU es solo una matriz de ruido, usamos np.save puro (.npy)
+                # Guardar npy
                 np.save(archivoSalidaLimpio, recorte)
                 
                 print(f"   [OK] {nombreFoto}")
@@ -248,7 +246,7 @@ def entrenamientoNoiseprint():
     todosLosItems = os.listdir(carpetaHuellasNoiseprint)
 
     for d in todosLosItems:
-        # Construimos la ruta completa (ej: "huellas/iphone")
+        # Construimos la ruta completa (ej: "huellasNoiseprint/iphone15")
         rutaCompleta = os.path.join(carpetaHuellasNoiseprint, d)
     
         # Comprobamos si es una carpeta (modelo) y lo añadimos a la lista de modelos, si no, se ignora.
@@ -342,12 +340,11 @@ def entrenamientoPRNU():
                 print(f"   Error leyendo {os.path.basename(archivo)}")
 
         if count > 0:
-            huella_media = suma / count # Calculamos la media (Estimador de Máxima Verosimilitud)
+            huella_media = suma / count # Calculamos la media para obtener la huella maestra del modelo
             
-            # --- PASO CRÍTICO DE PRNU: LIMPIEZA DE ARTEFACTOS ---
-            # Borramos patrones compartidos por todos los móviles de esa marca
+            # En PRNU, es necesario aplicar el zero-mean total y el filtro Wiener DFT para limpiar la huella maestra, ya que la media puede contener ruido no deseado
             print("   Aplicando Zero-Mean Total y filtro Wiener DFT...")
-            huella_media_zm = zero_mean_total(huella_media)
+            huella_media_zm = zero_mean_total(huella_media) 
             master_limpia = wiener_dft(huella_media_zm, huella_media_zm.std(ddof=1))
             
             # Guardamos la huella maestra final ya limpia
@@ -450,11 +447,11 @@ def testPRNU():
     print(f"Analizando: {os.path.basename(rutaImagen)}...")
     
     try:
-        # 1. Extraer huella al vuelo (Motor PRNU)
+        # Extraer huella al vuelo (Motor PRNU)
         img = np.asarray(Image.open(rutaImagen))
         res = extract_single(img)
         
-        # 2. Recorta para comparar con las maestras (1024x1024 del centro)
+        # Recorta para comparar con las maestras (1024x1024 del centro)
         h, w = res.shape
         if h < tamañoRecorte or w < tamañoRecorte:
             print("Error: La imagen es demasiado pequeña para compararla.")
@@ -464,12 +461,12 @@ def testPRNU():
         dy, dx = tamañoRecorte // 2, tamañoRecorte // 2
         huellaTest = res[cy-dy:cy+dy, cx-dx:cx+dx]
 
-        # 3. Comparar
+        # Comparar
         print(f"\n{'MODELO':<15} | {'CORRELACIÓN PCE (¡Mayor es mejor!)':<35}")
         print("-" * 55)
         
         mejorModelo = "Desconocido"
-        maxPCE = float('-inf') # ATENCIÓN: Iniciamos en menos infinito porque buscamos el MÁXIMO
+        maxPCE = float('-inf') # Iniciamos en menos infinito porque buscamos el MÁXIMO a diferencia de la distancia que buscaba el mínimo
 
         for modelo in modelosDisp:
             rutaMaster = os.path.join(carpetaMaestrasPRNU, f"MAESTRA_PRNU_{modelo}.npy")
@@ -501,19 +498,19 @@ def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo):
     print(f"📊 RESULTADOS MÉTRICAS: {nombre_metodo.upper()} 📊")
     print("="*50)
 
-    # 1. Calculamos las métricas
+    # Calculamos las métricas
     reporte = classification_report(y_real, y_pred, labels=clases_unicas, zero_division=0)
     acc = accuracy_score(y_real, y_pred)
     mcc = matthews_corrcoef(y_real, y_pred)
     cm = confusion_matrix(y_real, y_pred, labels=clases_unicas)
     
-    # Imprimir en consola como antes
+    # Imprimir en consola
     print("\n--- CLASSIFICATION REPORT ---")
     print(reporte)
     print(f"Accuracy Global: {acc:.4f} ({(acc*100):.2f}%)")
     print(f"Matthews Corr. Coef. (MCC): {mcc:.4f}")
 
-    # 2. Preparamos el texto que se escribirá en el PDF
+    # Preparamos el texto que se escribirá en el PDF
     texto_pdf = f"Accuracy Global: {acc:.4f} ({(acc*100):.2f}%)\n"
     texto_pdf += f"Matthews Corr. Coef. (MCC): {mcc:.4f}\n\n"
     texto_pdf += reporte + "\n"
@@ -526,8 +523,7 @@ def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo):
         print(linea_fp_fn)
         texto_pdf += linea_fp_fn + "\n"
 
-    # 3. Dibujamos la Matriz y añadimos el texto
-    # Hacemos la figura más alta (12, 22) para que quepa todo sin apretujarse
+    # Dibujamos la Matriz y añadimos el texto
     plt.figure(figsize=(12, 22)) 
     
     # Dejamos el 55% inferior de la imagen vacío (para las etiquetas largas y el texto)
@@ -542,10 +538,10 @@ def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo):
     plt.xlabel('Clase Predicha')
     plt.xticks(rotation=45, ha='right')
     
-    # Magia aquí: va='top' y y=0.45. El texto empieza debajo de la gráfica y crece hacia abajo.
+  
     plt.figtext(0.1, 0.45, texto_pdf, fontsize=10, family='monospace', va='top')
 
-    # 4. Guardamos
+    # Guardamos
     nombre_archivo = f"Estadísticas_{nombre_metodo}.pdf"
     plt.savefig(nombre_archivo, format='pdf', bbox_inches='tight')
     plt.close()
@@ -598,7 +594,7 @@ def evaluacionGlobal():
         print(f"Error: No existe la carpeta '{carpetaTests}'.")
         return
 
-    # 1. PREPARACIÓN: Cargar maestras
+    # Cargar maestras
     maestras_np = {}
     for ruta in glob.glob(os.path.join(dirMaestrasNP, "MAESTRA_*.npy")):
         if "PRNU" not in ruta: 
@@ -615,14 +611,14 @@ def evaluacionGlobal():
     modelos_pred_np = list(maestras_np.keys()) + ["Desconocido"]
     modelos_pred_prnu = list(maestras_prnu.keys()) + ["Desconocido"]
     
-    #Listas para almacenar resultados reales y predichos
+    # Listas para almacenar resultados reales y predichos
     lista_reales = []
     lista_pred_np = []
     lista_pred_prnu = []
 
     tiempo_inicio = time.time()
 
-    # 2. EVALUACIÓN FOTO A FOTO
+    # EVALUACIÓN FOTO A FOTO
     for modelo_real in modelos_test:
 
         ruta_jpg = os.path.join(carpetaTests, modelo_real, "*.jpg")
@@ -687,7 +683,7 @@ def evaluacionGlobal():
                 lista_pred_np.append("Desconocido")
                 lista_pred_prnu.append("Desconocido")
 
-    # 3. MÉTRICAS Y PDF
+    # MÉTRICAS Y PDF
     evaluar_y_generar_pdf(lista_reales, lista_pred_np, modelos_pred_np, f"NOISEPRINT_{etiqueta}")
     evaluar_y_generar_pdf(lista_reales, lista_pred_prnu, modelos_pred_prnu, f"PRNU_{etiqueta}")
 
@@ -770,15 +766,15 @@ def crearDatasetFiltroBelleza():
                 
                 if not os.path.exists(ruta_destino):
                     try:
-                        # 1. Leer imagen con OpenCV
+                        # Leer imagen con OpenCV
                         imagen = cv2.imread(ruta_origen)
                         
-                        # 2. Aplicar Filtro Bilateral (NO LINEAL)
+                        # Aplicar Filtro Bilateral (NO LINEAL)
                         # Parámetros: d=15 (diámetro), sigmaColor=75, sigmaSpace=75
                         # Esto "plancha" las texturas pero mantiene los bordes
                         suavizada = cv2.bilateralFilter(imagen, 15, 75, 75)
                         
-                        # 3. Aplicar CLAHE (Contraste local NO LINEAL)
+                        # Aplicar CLAHE (Contraste local NO LINEAL)
                         # Convertimos a formato LAB para alterar solo la luminosidad, no los colores
                         lab = cv2.cvtColor(suavizada, cv2.COLOR_BGR2LAB)
                         l, a, b = cv2.split(lab)
@@ -859,7 +855,7 @@ def main():
             crearDatasetFiltroBelleza()
             break
         elif opcion == '10':
-            # --- PRUEBA RÁPIDA DE LA FUNCIÓN ---
+            # Para probar la generación de PDF
             print("\nGenerando PDF de prueba...")
             clases = ["iphone14", "iphone15", "samsungS21", "Desconocido"]
             reales =       ["iphone14", "iphone14", "iphone15", "samsungS21", "samsungS21"]
