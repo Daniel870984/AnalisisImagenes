@@ -27,7 +27,7 @@ import numpy as np
 import time
 import cv2
 
-from PIL import Image
+from PIL import Image, ExifTags
 import prnu
 # Importamos funciones de PRNU
 from prnu.functions import extract_single, zero_mean_total, wiener_dft, crosscorr_2d, pce
@@ -821,6 +821,73 @@ def crearDatasetFiltroBelleza():
     print("-"*50 + "\n")
 
 
+def auditar_dataset(carpeta_fotos):
+    print(f"\n" + "="*70)
+    print(f"🕵️‍♂️ INICIANDO AUDITORÍA FORENSE DE SENSORES EN: {carpeta_fotos}")
+    print("="*70)
+    
+    # Contadores para el resumen final
+    fotos_validas = 0
+    fotos_sospechosas = 0
+
+    # Revisamos que la carpeta exista
+    if not os.path.exists(carpeta_fotos):
+        print(f"❌ ERROR: La carpeta '{carpeta_fotos}' no existe.")
+        return
+
+    for archivo in os.listdir(carpeta_fotos):
+        if archivo.lower().endswith(('.jpg', '.jpeg')):
+            ruta = os.path.join(carpeta_fotos, archivo)
+            
+            try:
+                img = Image.open(ruta)
+                # Extraemos los datos EXIF brutos
+                exif_bruto = img._getexif()
+                
+                if exif_bruto is None:
+                    print(f"❌ {archivo:<15} -> [ALERTA] Sin EXIF. (Posible captura o compresión)")
+                    fotos_sospechosas += 1
+                    continue
+
+                # Mapeamos los EXIF a nombres legibles
+                exif = {ExifTags.TAGS[k]: v for k, v in exif_bruto.items() if k in ExifTags.TAGS}
+                
+                # Extraemos las etiquetas clave
+                modelo = exif.get('Model', 'Desconocido')
+                lente = exif.get('LensModel', 'Desconocido')
+                focal_35mm = exif.get('FocalLengthIn35mmFilm', 'N/A')
+                
+                # REGLAS DE ORO PARA EL iPHONE 14 PRO (Cámara Principal 1x)
+                # 1. El modelo debe ser de la familia iPhone 14
+                es_iphone14 = "iPhone 14" in str(modelo)
+                
+                # 2. La longitud focal equivalente a 35mm debe ser 24mm (el estándar del 1x)
+                es_focal_correcta = str(focal_35mm) == "24"
+                
+                # Evaluamos
+                if es_iphone14 and es_focal_correcta:
+                    print(f"✅ {archivo:<15} -> OK ({modelo} | 1x: {focal_35mm}mm | Lente: {lente})")
+                    fotos_validas += 1
+                else:
+                    print(f"⚠️ {archivo:<15} -> [DESCARTAR] Focal incorrecta: {focal_35mm}mm (Lente: {lente})")
+                    fotos_sospechosas += 1
+                    
+            except Exception as e:
+                print(f"❌ {archivo:<15} -> ERROR DE LECTURA: {e}")
+                fotos_sospechosas += 1
+
+    print("\n" + "="*70)
+    print("📊 RESUMEN DE LA AUDITORÍA")
+    print(f"✅ Fotos válidas (Cámara Principal 1x): {fotos_validas}")
+    print(f"⚠️ Fotos para descartar (0.5x, Selfie o Sin EXIF): {fotos_sospechosas}")
+    
+    if fotos_sospechosas > 0:
+        print("\n💡 RECOMENDACIÓN: Elimina las fotos marcadas con ⚠️ o ❌ antes de generar la Huella Maestra.")
+    else:
+        print("\n🏆 DATASET PURO: Listo para generar la Huella Maestra (PRNU/Noiseprint).")
+    print("="*70 + "\n")
+
+
 
 
 # ===============
@@ -847,13 +914,15 @@ def main():
         print("")
         print("9. Conversion con Filtro de Belleza (para el experimento testBelleza)")
         print("")
-        print("10. [TEST RÁPIDO] Probar generación de PDF")
+        print("10. Auditar dataset")
+        print("")
+        print("11. [TEST RÁPIDO] Probar generación de PDF")
         print("")
 
-        print("11. Salir")
+        print("12. Salir")
         print("================================================")
         
-        opcion = input("\nElige una opción (1-11): ")
+        opcion = input("\nElige una opción (1-12): ")
 
         if opcion == '1':
             extraccionNoiseprint()
@@ -877,13 +946,15 @@ def main():
             crearDatasetFiltroBelleza()
             break
         elif opcion == '10':
+            auditar_dataset("TFG/dataset/iphone14_personal")
+        elif opcion == '11':
             # Para probar la generación de PDF
             print("\nGenerando PDF de prueba...")
             clases = ["iphone14", "iphone15", "samsungS21", "Desconocido"]
             reales =       ["iphone14", "iphone14", "iphone15", "samsungS21", "samsungS21"]
             predicciones = ["iphone14", "Desconocido", "iphone15", "iphone15", "samsungS21"]
             evaluar_y_generar_pdf(reales, predicciones, clases, "PRUEBA_RAPIDA")
-        elif opcion == '11':
+        elif opcion == '12':
             print("¡Bye!")
             break
         else:
