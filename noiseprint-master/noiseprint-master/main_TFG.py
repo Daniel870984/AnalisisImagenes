@@ -493,7 +493,7 @@ def testPRNU():
 # ====================================
 # FUNCIÓN PARA GENERAR MÉTRICAS Y PDF 
 # ====================================
-def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo):
+def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo, valores_metrica=None, nombre_valor=""):    
     print(f"\n" + "="*50)
     print(f"📊 RESULTADOS MÉTRICAS: {nombre_metodo.upper()} 📊")
     print("="*50)
@@ -510,10 +510,22 @@ def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo):
     print(f"Accuracy Global: {acc:.4f} ({(acc*100):.2f}%)")
     print(f"Matthews Corr. Coef. (MCC): {mcc:.4f}")
 
+    # Calculamos y mostramos la media de la métrica (PCE o Distancia)
+    texto_extra = ""
+    if valores_metrica and len(valores_metrica) > 0:
+        # Evitamos valores infinitos en la media por si falló alguna foto
+        valores_limpios = [v for v in valores_metrica if v != float('inf') and v != float('-inf')]
+        if valores_limpios:
+            media = sum(valores_limpios) / len(valores_limpios)
+            texto_extra = f"Media de la fuerza de señal ({nombre_valor}): {media:.4f}\n"
+            print(texto_extra.strip())
+
     # Preparamos el texto que se escribirá en el PDF
     texto_pdf = f"Accuracy Global: {acc:.4f} ({(acc*100):.2f}%)\n"
-    texto_pdf += f"Matthews Corr. Coef. (MCC): {mcc:.4f}\n\n"
-    texto_pdf += reporte + "\n"
+    texto_pdf += f"Matthews Corr. Coef. (MCC): {mcc:.4f}\n"
+    if texto_extra:
+        texto_pdf += texto_extra
+    texto_pdf += "\n" + reporte + "\n"
 
     for i, clase in enumerate(clases_unicas):
         TP = cm[i, i]
@@ -586,6 +598,11 @@ def evaluacionGlobal():
         etiqueta = "FILTRO BELLEZA"
         dirMaestrasNP = carpetaMaestrasNoiseprint 
         dirMaestrasPRNU = carpetaMaestrasPRNU
+    elif opc_test == '6':
+        carpetaTests = "TFG/testInstagram"
+        etiqueta = "INSTAGRAM"
+        dirMaestrasNP = "TFG/maestrasNoiseprintInstagram"
+        dirMaestrasPRNU = "TFG/maestrasPRNUInstagram"
     else:
         print("Opción no válida. Cancelando evaluación.")
         return
@@ -611,10 +628,12 @@ def evaluacionGlobal():
     modelos_pred_np = list(maestras_np.keys()) + ["Desconocido"]
     modelos_pred_prnu = list(maestras_prnu.keys()) + ["Desconocido"]
     
-    # Listas para almacenar resultados reales y predichos
+    # Listas para almacenar resultados reales y predichos para ambas técnicas, así como las distancias y PCE para análisis adicional
     lista_reales = []
     lista_pred_np = []
     lista_pred_prnu = []
+    lista_distancias_np = [] 
+    lista_pce_prnu = []
 
     tiempo_inicio = time.time()
 
@@ -673,7 +692,10 @@ def evaluacionGlobal():
                 # Guardamos los resultados para las métricas globales
                 lista_reales.append(modelo_real)
                 lista_pred_np.append(mejor_np)
+                lista_distancias_np.append(menor_dist)
                 lista_pred_prnu.append(mejor_prnu)
+                lista_pce_prnu.append(mayor_pce)
+
                 
                 print(f"NP: {mejor_np} | PRNU: {mejor_prnu}")
 
@@ -684,8 +706,8 @@ def evaluacionGlobal():
                 lista_pred_prnu.append("Desconocido")
 
     # MÉTRICAS Y PDF
-    evaluar_y_generar_pdf(lista_reales, lista_pred_np, modelos_pred_np, f"NOISEPRINT_{etiqueta}")
-    evaluar_y_generar_pdf(lista_reales, lista_pred_prnu, modelos_pred_prnu, f"PRNU_{etiqueta}")
+    evaluar_y_generar_pdf(lista_reales, lista_pred_np, modelos_pred_np, f"NOISEPRINT_{etiqueta}", lista_distancias_np, "Distancia Euclidiana")
+    evaluar_y_generar_pdf(lista_reales, lista_pred_prnu, modelos_pred_prnu, f"PRNU_{etiqueta}", lista_pce_prnu, "PCE")
 
     print("\n" + "-" * 60)
     print(f"Tiempo total de evaluación: {(time.time() - tiempo_inicio)/60:.1f} minutos.")

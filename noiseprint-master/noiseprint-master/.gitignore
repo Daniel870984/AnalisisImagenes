@@ -112,6 +112,7 @@ TFG/testWhatsApp/
 TFG/testDevice/
 TFG/testBN/
 TFG/testBelleza/
+TFG/testInstagram/
 
 # Ignorar huellas individuales de cada foto
 TFG/huellasNoiseprint/

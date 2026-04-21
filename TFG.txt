@@ -33,6 +33,8 @@ pip install opencv-python==4.3.0.36 scipy PyWavelets Pillow
 pip install scikit-learn==0.24.2 tqdm
 pip install scikit-learn matplotlib seaborn
 
+CODIGO NOISEPRINT
+https://grip-unina.github.io/noiseprint/
 
 
 CODIGO PRNU
@@ -343,7 +345,8 @@ Noiseprint: Confirmó que la red neuronal no busca "colores", sino estructuras, 
 
 
 EXPERIMENTO FILTROS NO LINEALES 13/04/26
-Objetivo: Atacar a los algoritmos con matemáticas asimétricas y adaptativas. He usado OpenCV para aplicar un suavizado inteligente de bordes (Filtro Bilateral) y una alteración de contraste local por zonas (CLAHE).
+Objetivo: Atacar a los algoritmos con matemáticas asimétricas y adaptativas. He usado OpenCV para aplicar un suavizado inteligente de bordes (Filtro Bilateral) y una 
+alteración de contraste local por zonas (CLAHE).
 Conclusiones: Destrucción total
 PRNU: Cae por completo. Al alterar la luz y las sombras localmente (por cuadrículas), el patrón geométrico del sensor se desincroniza.
 Noiseprint: Es engañado brutalmente. El filtro borra los artefactos del software original de la cámara y sobreescribe los suyos propios. Tanto es así, que el algoritmo 
@@ -352,7 +355,12 @@ esos dos móviles).
 
 
 
-EXPERIMENTO CAPTURA IN-APP 
+EXPERIMENTO CAPTURA IN-APP 20/04/2026
+
+
+
+
+EXPERIMENTO extra -> Huella maestra con filtros belleza
 
 
 
@@ -360,6 +368,29 @@ EXPERIMENTO CAPTURA IN-APP
 
 
 
+
+
+
+
+
+
+
+
+
+
+Datos TFG Propuesta
+Empezar por problemas y luego objetivos, un poco mas largo
+NO separar enfoque y herramientas (mi portatil sobra y memoria latex tmb)
+Esquematizar pasos a realizar
+
+
+Ricardo Julio Rodríguez Férnandez 76922262G
+
+
+José Roldán Gómez 48154212D
+
+AREA LSI
+Departamento DIIS
 
 
 
