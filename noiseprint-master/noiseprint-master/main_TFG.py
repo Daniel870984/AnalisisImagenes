@@ -571,7 +571,8 @@ def evaluacionGlobal():
     print("3. Experimento Device ID (TFG/testDevice)")
     print("4. Experimento Blanco y Negro (TFG/testBN)")
     print("5. Experimento Filtrado Belleza (TFG/testBelleza)")
-    opc_test = input("Elige una opción (1,2, 3 o 4): ")
+    print("6. Experimento Instagram In-App (TFG/testInstagram)")
+    opc_test = input("Elige una opción (1,2,3,4,5 o 6): ")
     
     if opc_test == '1':
         carpetaTests = "TFG/test"
