@@ -27,7 +27,7 @@ import numpy as np
 import time
 import cv2
 
-from PIL import Image, ExifTags
+from PIL import Image, ExifTags, ImageOps
 import prnu
 # Importamos funciones de PRNU
 from prnu.functions import extract_single, zero_mean_total, wiener_dft, crosscorr_2d, pce
@@ -569,7 +569,7 @@ def evaluacionGlobal():
     print("1. Fotos Originales (TFG/test)")
     print("2. Fotos de WhatsApp (TFG/testWhatsApp)")
     print("3. Experimento Device ID (TFG/testDevice)")
-    print("4. Experimento Blanco y Negro (TFG/testBN)")
+    print("4. Experimento Filtro Lineal (TFG/testFiltroLineal)")
     print("5. Experimento Filtrado Belleza (TFG/testBelleza)")
     print("6. Experimento Instagram In-App (TFG/testInstagram)")
     opc_test = input("Elige una opción (1,2,3,4,5 o 6): ")
@@ -590,10 +590,10 @@ def evaluacionGlobal():
         dirMaestrasNP = "TFG/maestrasNoiseprintDevice"
         dirMaestrasPRNU = "TFG/maestrasPRNUDevice"     
     elif opc_test == '4':
-        carpetaTests = "TFG/testBN"
-        etiqueta = "BLANCO Y NEGRO"
-        dirMaestrasNP = "TFG/maestrasNoiseprintBN" 
-        dirMaestrasPRNU = "TFG/maestrasPRNUBN"
+        carpetaTests = "TFG/testFiltroLineal"
+        etiqueta = "FILTRO LINEAL"
+        dirMaestrasNP = "TFG/maestrasNoiseprintFiltroLineal" 
+        dirMaestrasPRNU = "TFG/maestrasPRNUFiltroLineal"
     elif opc_test == '5':
         carpetaTests = "TFG/testBelleza"
         etiqueta = "FILTRO BELLEZA"
@@ -714,16 +714,23 @@ def evaluacionGlobal():
     print(f"Tiempo total de evaluación: {(time.time() - tiempo_inicio)/60:.1f} minutos.")
 
 
-def crearDatasetBN():
+def crearDatasetFiltroLineal():
     """
-    Convierte todas las imágenes de la carpeta dataset_test a Blanco y Negro 
-    y las guarda en una nueva carpeta manteniendo la estructura.
+    Aplica una transformación lineal puntual (Brillo y Contraste)
+    a todas las imágenes de la carpeta dataset_test y las guarda
+    en una nueva carpeta manteniendo la estructura de directorios.
+    Ecuación matemática aplicada: Y = alpha * X + beta
     """
     carpeta_origen = "TFG/test"
-    carpeta_destino = "TFG/testBN"
+    carpeta_destino = "TFG/testFiltroLineal"
+    
+    # Parámetros de la transformación lineal
+    alpha = 1.2 # Factor de contraste (>1 aumenta, <1 disminuye)
+    beta = 30 # Factor de brillo (valores positivos aclaran, negativos oscurecen)
     
     print("\n" + "="*50)
-    print(" INICIANDO CONVERSIÓN A BLANCO Y NEGRO (ESCALA DE GRISES)")
+    print(" INICIANDO APLICACIÓN DE FILTRO LINEAL (BRILLO Y CONTRASTE)")
+    print(f" Parámetros: Contraste (alpha)={alpha} | Brillo (beta)={beta}")
     print("="*50)
     
     if not os.path.exists(carpeta_origen):
@@ -747,10 +754,16 @@ def crearDatasetBN():
                 if not os.path.exists(ruta_destino):
                     try:
                         imagen = Image.open(ruta_origen)
-                        imagen_bn = imagen.convert('L') 
-                        imagen_bn.save(ruta_destino, quality=100)
+                        
+                        # Suma un valor constante (ej. +10) a cada píxel de la imagen
+                        #imagen_brillo = Image.eval(imagen, lambda x: x + 50)
+                        imagen_filtrada = Image.eval(
+                            imagen, 
+                            lambda x: max(0, min(255, int(alpha * (x - 128) + 128 + beta)))
+                        )                        
+                        imagen_filtrada.save(ruta_destino, quality=100)
                         contador += 1
-                        print(f"[OK] Convertida: {archivo}")
+                        print(f"[OK] Brillo modificado: {archivo}")
                     except Exception as e:
                         print(f"[ERROR] Fallo en {archivo}: {e}")
                 
@@ -758,7 +771,6 @@ def crearDatasetBN():
     print(f" Proceso finalizado. {contador} imágenes nuevas generadas.")
     print(f" Carpeta destino: {carpeta_destino}")
     print("-"*50 + "\n")
-
 
 
 def crearDatasetFiltroBelleza():
@@ -824,7 +836,7 @@ def crearDatasetFiltroBelleza():
 
 def auditar_dataset(carpeta_fotos):
     print(f"\n" + "="*70)
-    print(f"🕵️‍♂️ INICIANDO AUDITORÍA FORENSE DE SENSORES EN: {carpeta_fotos}")
+    print(f"INICIANDO AUDITORÍA FORENSE DE SENSORES EN: {carpeta_fotos}")
     print("="*70)
     
     # Contadores para el resumen final
@@ -878,7 +890,7 @@ def auditar_dataset(carpeta_fotos):
                 fotos_sospechosas += 1
 
     print("\n" + "="*70)
-    print("📊 RESUMEN DE LA AUDITORÍA")
+    print(" RESUMEN DE LA AUDITORÍA")
     print(f"✅ Fotos válidas (Cámara Principal 1x): {fotos_validas}")
     print(f"⚠️ Fotos para descartar (0.5x, Selfie o Sin EXIF): {fotos_sospechosas}")
     
@@ -911,7 +923,7 @@ def main():
         print("")
         print("7. Evaluación Global + Estadísticas")
         print("")
-        print("8. Conversion a Blanco y Negro (para el experimento testBN)")
+        print("8. Crear Dataset con Filtro Lineal (para el experimento testFiltroLineal)")
         print("")
         print("9. Conversion con Filtro de Belleza (para el experimento testBelleza)")
         print("")
@@ -941,7 +953,7 @@ def main():
             evaluacionGlobal()
             break
         elif opcion == '8':
-            crearDatasetBN()
+            crearDatasetFiltroLineal()
             break
         elif opcion == '9':
             crearDatasetFiltroBelleza()

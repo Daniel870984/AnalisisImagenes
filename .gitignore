@@ -1,0 +1,102 @@
+# ==========================================
+# Carpetas personales y de referencia (Raíz)
+# ==========================================
+Articulos/
+EjemplosTFG_CNN/
+
+# ==========================================
+# Configuración estándar de Python e IDEs
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+*.mo
+*.pot
+*.log
+local_settings.py
+db.sqlite3
+instance/
+.webassets-cache
+.scrapy
+docs/_build/
+target/
+.ipynb_checkpoints
+.python-version
+celerybeat-schedule
+*.sage.py
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.spyderproject
+.spyproject
+.ropeproject
+/site
+.mypy_cache/
+
+# ==========================================
+# Ignorar carpetas de imágenes del TFG
+# ==========================================
+noiseprint-master/noiseprint-master/TFG/dataset/
+noiseprint-master/noiseprint-master/TFG/test/
+noiseprint-master/noiseprint-master/TFG/testWhatsApp/
+noiseprint-master/noiseprint-master/TFG/testDevice/
+noiseprint-master/noiseprint-master/TFG/testFiltroLineal/
+noiseprint-master/noiseprint-master/TFG/testFiltroLinealSevero/
+noiseprint-master/noiseprint-master/TFG/testBelleza/
+noiseprint-master/noiseprint-master/TFG/testInstagram/
+noiseprint-master/noiseprint-master/TFG/testBN/
+
+# Ignorar huellas individuales de cada foto
+noiseprint-master/noiseprint-master/TFG/huellasNoiseprint/
+noiseprint-master/noiseprint-master/TFG/huellasPRNU/
+
+# Ignorar archivos sueltos
+*.npz
+*.npy
+
+# ==========================================
+# REGLAS EXCEPCIONALES: Las huellas maestras SÍ se suben
+# ==========================================
+!noiseprint-master/noiseprint-master/TFG/maestrasNoiseprint/
+!noiseprint-master/noiseprint-master/TFG/maestrasPRNU/
+!noiseprint-master/noiseprint-master/TFG/maestrasNoiseprintDevice/
+!noiseprint-master/noiseprint-master/TFG/maestrasPRNUDevice/
+!noiseprint-master/noiseprint-master/TFG/maestrasPRNUBN/
+
+TFG.txt
