@@ -6,7 +6,7 @@ import warnings
 # Silenciar advertencias de Python (Deprecated, FutureWarnings, etc.)
 warnings.filterwarnings("ignore")
 
-# Silenciar los mensajes internos de TensorFlow 0 = todo, 1 = info, 2 = warnings, 3 = errors (solo fatal)
+# Silenciar los mensajes internos de TensorFlow 0 = todo, 1 = info, 2 = warnings, 3 = errors
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Silenciar el logger de TensorFlow (Python)
@@ -29,10 +29,10 @@ import cv2
 
 from PIL import Image, ExifTags, ImageOps
 import prnu
-# Importamos funciones de PRNU
+# Funciones de PRNU
 from prnu.functions import extract_single, zero_mean_total, wiener_dft, crosscorr_2d, pce
 
-# Importamos las funciones del proyecto Noiseprint
+# Funciones del proyecto Noiseprint
 from noiseprint.noiseprint import genNoiseprint
 from noiseprint.utility.utilityRead import imread2f, jpeg_qtableinv
 
@@ -47,10 +47,10 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 # ==============================
 tamañoRecorte = 1024          # Tamaño del recorte central (1024x1024 píxeles)
 carpetaDatos = "TFG/dataset"   # Carpeta con las fotos originales (organizadas por móvil)
-carpetaHuellasNoiseprint = "TFG/huellasNoiseprint" # Carpeta para guardar los .npz procesados
-carpetaMaestrasNoiseprint = "TFG/maestrasNoiseprint" # Carpeta para guardar las Huellas Maestras (.npy)
-carpetaHuellasPRNU = "TFG/huellasPRNU" # Carpeta para guardar las huellas PRNU (.npy)
-carpetaMaestrasPRNU = "TFG/maestrasPRNU" # Carpeta para guardar las Huellas Maestras PRNU (.npy)
+carpetaHuellasNoiseprint = "TFG/huellas/huellasNoiseprint" # Carpeta para guardar los .npz procesados
+carpetaMaestrasNoiseprint = "TFG/maestras/maestrasNoiseprint" # Carpeta para guardar las Huellas Maestras (.npy)
+carpetaHuellasPRNU = "TFG/huellas/huellasPRNU" # Carpeta para guardar las huellas PRNU (.npy)
+carpetaMaestrasPRNU = "TFG/maestras/maestrasPRNU" # Carpeta para guardar las Huellas Maestras PRNU (.npy)
 
 # =======================
 # 1. FASE DE EXTRACCIÓN
@@ -495,7 +495,7 @@ def testPRNU():
 # ====================================
 def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo, valores_metrica=None, nombre_valor=""):    
     print(f"\n" + "="*50)
-    print(f"📊 RESULTADOS MÉTRICAS: {nombre_metodo.upper()} 📊")
+    print(f"RESULTADOS MÉTRICAS: {nombre_metodo.upper()}")
     print("="*50)
 
     # Calculamos las métricas
@@ -553,12 +553,20 @@ def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo, valores_
   
     plt.figtext(0.1, 0.45, texto_pdf, fontsize=10, family='monospace', va='top')
 
-    # Guardamos
+    carpeta_destino = os.path.join("TFG", "estadisticas")
+    
+    # Nos aseguramos de que la carpeta exista (si no, la crea automáticamente)
+    os.makedirs(carpeta_destino, exist_ok=True)
+    
+    # Construimos la ruta completa del archivo
     nombre_archivo = f"Estadísticas_{nombre_metodo}.pdf"
-    plt.savefig(nombre_archivo, format='pdf', bbox_inches='tight')
+    ruta_completa = os.path.join(carpeta_destino, nombre_archivo)
+    
+    # Guardamos el PDF en la ruta completa establecida
+    plt.savefig(ruta_completa, format='pdf', bbox_inches='tight')
     plt.close()
     
-    print(f"\n✅ Gráfica y estadísticas guardadas exitosamente como: {nombre_archivo}")
+    print(f"\n[+] Gráfica y estadísticas guardadas exitosamente en: {ruta_completa}")
     print("="*50)
 
 
@@ -566,44 +574,44 @@ def evaluacionGlobal():
     print("\n--- FASE 4: EVALUACIÓN MASIVA CON MATRIZ DE CONFUSIÓN ---")
 
     print("¿Qué dataset de prueba quieres evaluar?")
-    print("1. Fotos Originales (TFG/test)")
-    print("2. Fotos de WhatsApp (TFG/testWhatsApp)")
-    print("3. Experimento Device ID (TFG/testDevice)")
-    print("4. Experimento Filtro Lineal (TFG/testFiltroLineal)")
-    print("5. Experimento Filtrado Belleza (TFG/testBelleza)")
-    print("6. Experimento Instagram In-App (TFG/testInstagram)")
+    print("1. Fotos Originales")
+    print("2. Fotos de WhatsApp")
+    print("3. Experimento Device ID")
+    print("4. Experimento Filtro Lineal")
+    print("5. Experimento Filtrado Belleza")
+    print("6. Experimento Instagram In-App")
     opc_test = input("Elige una opción (1,2,3,4,5 o 6): ")
     
     if opc_test == '1':
-        carpetaTests = "TFG/test"
+        carpetaTests = "TFG/tests/test"
         etiqueta = "ORIGINALES"
         dirMaestrasNP = carpetaMaestrasNoiseprint 
         dirMaestrasPRNU = carpetaMaestrasPRNU     
     elif opc_test == '2':
-        carpetaTests = "TFG/testWhatsApp"
+        carpetaTests = "TFG/tests/testWhatsApp"
         etiqueta = "WHATSAPP"
         dirMaestrasNP = carpetaMaestrasNoiseprint
         dirMaestrasPRNU = carpetaMaestrasPRNU     
     elif opc_test == '3':
-        carpetaTests = "TFG/testDevice"
+        carpetaTests = "TFG/tests/testDevice"
         etiqueta = "DEVICE"
-        dirMaestrasNP = "TFG/maestrasNoiseprintDevice"
-        dirMaestrasPRNU = "TFG/maestrasPRNUDevice"     
+        dirMaestrasNP = "TFG/maestras/maestrasNoiseprintDevice"
+        dirMaestrasPRNU = "TFG/maestras/maestrasPRNUDevice"     
     elif opc_test == '4':
-        carpetaTests = "TFG/testFiltroLineal"
+        carpetaTests = "TFG/tests/testFiltroLineal"
         etiqueta = "FILTRO LINEAL"
-        dirMaestrasNP = "TFG/maestrasNoiseprintFiltroLineal" 
-        dirMaestrasPRNU = "TFG/maestrasPRNUFiltroLineal"
+        dirMaestrasNP = "TFG/maestras/maestrasNoiseprintFiltroLineal" 
+        dirMaestrasPRNU = "TFG/maestras/maestrasPRNUFiltroLineal"
     elif opc_test == '5':
-        carpetaTests = "TFG/testBelleza"
+        carpetaTests = "TFG/tests/testBelleza"
         etiqueta = "FILTRO BELLEZA"
         dirMaestrasNP = carpetaMaestrasNoiseprint 
         dirMaestrasPRNU = carpetaMaestrasPRNU
     elif opc_test == '6':
-        carpetaTests = "TFG/testInstagram"
+        carpetaTests = "TFG/tests/testInstagram"
         etiqueta = "INSTAGRAM"
-        dirMaestrasNP = "TFG/maestrasNoiseprintInstagram"
-        dirMaestrasPRNU = "TFG/maestrasPRNUInstagram"
+        dirMaestrasNP = "TFG/maestras/maestrasNoiseprintInstagram"
+        dirMaestrasPRNU = "TFG/maestras/maestrasPRNUInstagram"
     else:
         print("Opción no válida. Cancelando evaluación.")
         return
@@ -721,8 +729,8 @@ def crearDatasetFiltroLineal():
     en una nueva carpeta manteniendo la estructura de directorios.
     Ecuación matemática aplicada: Y = alpha * X + beta
     """
-    carpeta_origen = "TFG/test"
-    carpeta_destino = "TFG/testFiltroLineal"
+    carpeta_origen = "TFG/tests/test"
+    carpeta_destino = "TFG/tests/testFiltroLineal"
     
     # Parámetros de la transformación lineal
     alpha = 1.2 # Factor de contraste (>1 aumenta, <1 disminuye)
@@ -775,8 +783,8 @@ def crearDatasetFiltroLineal():
 
 def crearDatasetFiltroBelleza():
    
-    carpeta_origen = "TFG/test"
-    carpeta_destino = "TFG/testBelleza"
+    carpeta_origen = "TFG/tests/test"
+    carpeta_destino = "TFG/tests/testBelleza"
     
     print("\n" + "="*50)
     print(" INICIANDO APLICACIÓN DE FILTRO NO LINEAL (BELLEZA)")
@@ -879,14 +887,14 @@ def auditar_dataset(carpeta_fotos):
                 
                 # Evaluamos
                 if es_iphone14 and es_focal_correcta:
-                    print(f"✅ {archivo:<15} -> OK ({modelo} | 1x: {focal_35mm}mm | Lente: {lente})")
+                    print(f" {archivo:<15} -> OK ({modelo} | 1x: {focal_35mm}mm | Lente: {lente})")
                     fotos_validas += 1
                 else:
-                    print(f"⚠️ {archivo:<15} -> [DESCARTAR] Focal incorrecta: {focal_35mm}mm (Lente: {lente})")
+                    print(f" {archivo:<15} -> [DESCARTAR] Focal incorrecta: {focal_35mm}mm (Lente: {lente})")
                     fotos_sospechosas += 1
                     
             except Exception as e:
-                print(f"❌ {archivo:<15} -> ERROR DE LECTURA: {e}")
+                print(f" {archivo:<15} -> ERROR DE LECTURA: {e}")
                 fotos_sospechosas += 1
 
     print("\n" + "="*70)
@@ -895,9 +903,9 @@ def auditar_dataset(carpeta_fotos):
     print(f"⚠️ Fotos para descartar (0.5x, Selfie o Sin EXIF): {fotos_sospechosas}")
     
     if fotos_sospechosas > 0:
-        print("\n💡 RECOMENDACIÓN: Elimina las fotos marcadas con ⚠️ o ❌ antes de generar la Huella Maestra.")
+        print("\n RECOMENDACIÓN: Elimina las fotos sospechosas antes de generar la Huella Maestra.")
     else:
-        print("\n🏆 DATASET PURO: Listo para generar la Huella Maestra (PRNU/Noiseprint).")
+        print("\n DATASET PURO: Listo para generar la Huella Maestra (PRNU/Noiseprint).")
     print("="*70 + "\n")
 
 
@@ -912,24 +920,24 @@ def main():
         print("  CLASIFICADOR FORENSE (NOISEPRINT vs PRNU)")
         print("================================================")
         print("--- NOISEPRINT (Deep Learning) ---")
-        print("1. Extraer huellas Noiseprint (.npz)")
+        print("1. Extraer huellas Noiseprint")
         print("2. Calcular Huella Maestra Noiseprint")
         print("3. Verificar imagen con Noiseprint")
         print("")
         print("--- PRNU (Sensor Físico) ---")
-        print("4. Extraer huellas PRNU (.npy)")
+        print("4. Extraer huellas PRNU")
         print("5. Calcular Huella Maestra PRNU")
         print("6. Verificar imagen con PRNU")
         print("")
         print("7. Evaluación Global + Estadísticas")
         print("")
-        print("8. Crear Dataset con Filtro Lineal (para el experimento testFiltroLineal)")
+        print("8. Crear Dataset con Filtro Lineal")
         print("")
-        print("9. Conversion con Filtro de Belleza (para el experimento testBelleza)")
+        print("9. Conversion con Filtro de Belleza")
         print("")
         print("10. Auditar dataset")
         print("")
-        print("11. [TEST RÁPIDO] Probar generación de PDF")
+        print("11. Probar generación de TEST de PDF")
         print("")
 
         print("12. Salir")

@@ -73,18 +73,18 @@ venv.bak/
 # Ignorar carpetas de imágenes del TFG
 # ==========================================
 noiseprint-master/noiseprint-master/TFG/dataset/
-noiseprint-master/noiseprint-master/TFG/test/
-noiseprint-master/noiseprint-master/TFG/testWhatsApp/
-noiseprint-master/noiseprint-master/TFG/testDevice/
-noiseprint-master/noiseprint-master/TFG/testFiltroLineal/
-noiseprint-master/noiseprint-master/TFG/testFiltroLinealSevero/
-noiseprint-master/noiseprint-master/TFG/testBelleza/
-noiseprint-master/noiseprint-master/TFG/testInstagram/
-noiseprint-master/noiseprint-master/TFG/testBN/
+noiseprint-master/noiseprint-master/TFG/tests/test/
+noiseprint-master/noiseprint-master/TFG/tests/testWhatsApp/
+noiseprint-master/noiseprint-master/TFG/tests/testDevice/
+noiseprint-master/noiseprint-master/TFG/tests/testFiltroLineal/
+noiseprint-master/noiseprint-master/TFG/tests/testFiltroLinealSevero/
+noiseprint-master/noiseprint-master/TFG/tests/testBelleza/
+noiseprint-master/noiseprint-master/TFG/tests/testInstagram/
+noiseprint-master/noiseprint-master/TFG/tests/testBN/
 
 # Ignorar huellas individuales de cada foto
-noiseprint-master/noiseprint-master/TFG/huellasNoiseprint/
-noiseprint-master/noiseprint-master/TFG/huellasPRNU/
+noiseprint-master/noiseprint-master/TFG/huellas/huellasNoiseprint/
+noiseprint-master/noiseprint-master/TFG/huellas/huellasPRNU/
 
 # Ignorar archivos sueltos
 *.npz
@@ -93,10 +93,10 @@ noiseprint-master/noiseprint-master/TFG/huellasPRNU/
 # ==========================================
 # REGLAS EXCEPCIONALES: Las huellas maestras SÍ se suben
 # ==========================================
-!noiseprint-master/noiseprint-master/TFG/maestrasNoiseprint/
-!noiseprint-master/noiseprint-master/TFG/maestrasPRNU/
-!noiseprint-master/noiseprint-master/TFG/maestrasNoiseprintDevice/
-!noiseprint-master/noiseprint-master/TFG/maestrasPRNUDevice/
-!noiseprint-master/noiseprint-master/TFG/maestrasPRNUBN/
+!noiseprint-master/noiseprint-master/TFG/maestras/maestrasNoiseprint/
+!noiseprint-master/noiseprint-master/TFG/maestras/maestrasPRNU/
+!noiseprint-master/noiseprint-master/TFG/maestras/maestrasNoiseprintDevice/
+!noiseprint-master/noiseprint-master/TFG/maestras/maestrasPRNUDevice/
+!noiseprint-master/noiseprint-master/TFG/maestras/maestrasPRNUBN/
 
 TFG.txt
