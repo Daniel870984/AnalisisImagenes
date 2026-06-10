@@ -12,18 +12,18 @@ El repositorio se ha estructurado de manera modular para garantizar la limpieza 
 │   ├── prnu/                # Código del extractor estadístico de PRNU
 │   │
 │   ├── TFG/                 # Directorio principal de datos del TFG
-│   │   ├── dataset/         # Fotografías nativas de control (CSAFE, iPhone 14 Pro, iPhone 15)
+│   │   ├── dataset/         # Directorio en el que colocar los datasets que se quieran utilizar
 │   │   ├── estadisticas/    # Reportes globales y matrices de confusión generadas en PDF
-│   │   ├── huellas/         # Mapas de ruido residual individuales extraídos de cada imagen
+│   │   ├── huellas/         # Directorio donde se almacenaran las huellas de ruido residual individuales extraídos de cada imagen
 │   │   ├── maestras/        # Huellas Maestras de referencia calculadas para cada dispositivo
-│   │   ├── tests/           # Conjuntos de imágenes bajo escenarios de estrés (WhatsApp, Instagram, Filtros)
+│   │   ├── tests/           # Directorio en el que colocar las imágenes bajo escenarios de estrés (WhatsApp, Instagram, Filtros)
 │   │   └── visualizacion/   # Mapas de características visuales (.png) extraídos de las huellas
 │   │
 │   ├── main_TFG.py          # Script principal interactivo (Menú de ejecución del pipeline)
 │   └── main_Visualizar.py   # Script de generación y renderizado de mapas de ruido
 │
 ├── .gitignore               # Configuración de exclusión para el control de versiones
-└── README.md                # Documentación del 
+└── README.md                # Documentación de la estructura y requisitos instalación
 ```
 
 ## Requisitos e Instalación
