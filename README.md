@@ -3,7 +3,6 @@
 Este repositorio contiene el framework experimental desarrollado para el Trabajo Fin de Grado (TFG) en Ingeniería Informática (Escuela de Ingeniería y Arquitectura, Universidad de Zaragoza). El objetivo del proyecto es auditar y comparar de forma empírica la robustez de los dos paradigmas predominantes en la Identificación de Cámara de Origen (SCI): el enfoque físico clásico (**PRNU**) y el enfoque moderno basado en aprendizaje profundo (**Noiseprint**), analizando el impacto crítico del postprocesado móvil y la compresión en redes sociales.
 
 ## Estructura del Proyecto
-
 El repositorio se ha estructurado de manera modular para garantizar la limpieza del código y la fácil localización de los artefactos generados por el pipeline:
 
 ```text
@@ -27,7 +26,8 @@ El repositorio se ha estructurado de manera modular para garantizar la limpieza 
 ```
 
 ## Requisitos e Instalación
-
 Asegurarse de instalar las dependencias necesarias que se detallan en la memoria, prestando especial atención a las versiones estables y compatibles de TensorFlow, OpenCV y NumPy requeridas para la ejecución de los modelos.
 
+## Licencia 📄
+Este proyecto esta sujeto a la licencia **GNU General Public License v3.0**  Para obtener mas detalles consultar el archivo [LICENSE](LICENSE).
 
