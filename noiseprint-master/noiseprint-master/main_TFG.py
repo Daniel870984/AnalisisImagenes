@@ -520,55 +520,60 @@ def evaluar_y_generar_pdf(y_real, y_pred, clases_unicas, nombre_metodo, valores_
             texto_extra = f"Media de la fuerza de señal ({nombre_valor}): {media:.4f}\n"
             print(texto_extra.strip())
 
-    # Preparamos el texto que se escribirá en el PDF
-    texto_pdf = f"Accuracy Global: {acc:.4f} ({(acc*100):.2f}%)\n"
-    texto_pdf += f"Matthews Corr. Coef. (MCC): {mcc:.4f}\n"
-    if texto_extra:
-        texto_pdf += texto_extra
-    texto_pdf += "\n" + reporte + "\n"
-
+    # Imprimir falsos positivos y negativos por terminal
     for i, clase in enumerate(clases_unicas):
         TP = cm[i, i]
         FP = cm[:, i].sum() - TP 
         FN = cm[i, :].sum() - TP
         linea_fp_fn = f"{clase:<22} -> FP: {FP:<4} | FN: {FN:<4}"
         print(linea_fp_fn)
-        texto_pdf += linea_fp_fn + "\n"
 
-    # Dibujamos la Matriz y añadimos el texto
-    plt.figure(figsize=(12, 22)) 
+    # --- CONFIGURACIÓN DE LA GRÁFICA (Ajustada para el PDF limpio) ---
+    # Reducimos el tamaño de la figura (ej: 10x8) ya que ya no lleva el texto gigante abajo
+    plt.figure(figsize=(10, 8)) 
     
-    # Dejamos el 55% inferior de la imagen vacío (para las etiquetas largas y el texto)
-    plt.subplots_adjust(bottom=0.55) 
+
+    # 1. Diccionario para mapear los nombres tal y como te vienen a como quiere Ricardo
+    traduccion_nombres = {
+        'iphone14': 'iPhone 14',
+        'iphone14_2': 'iPhone 14',
+        'iphone15': 'iPhone 15',
+        'samsungS21': 'S. S21',
+        'samsungNote10': 'S. Note 10',
+        'samsungNote10_flatfield': 'S. Note 10\n(Flatfield)',
+        'iphone14_personal': 'iPhone 14'
+    }
     
-    # Pintamos el Heatmap en la parte superior
+    # 2. Convertimos la lista de clases usando el diccionario (si no está, se queda igual)
+    clases_formateadas = [traduccion_nombres.get(clase, clase) for clase in clases_unicas]
+    # Pintamos el Heatmap ocupando bien el espacio
+    # annot_kws={'size': 16} es el truco para que los números de las celdas se vean grandes
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=clases_unicas, yticklabels=clases_unicas)
+                xticklabels=clases_formateadas, yticklabels=clases_formateadas,
+                annot_kws={'size': 35}) # <-- FUENTE DE LAS CELDAS MAS GRANDE
     
-    plt.title(f'Matriz de Confusión - {nombre_metodo}')
-    plt.ylabel('Clase Real')
-    plt.xlabel('Clase Predicha')
-    plt.xticks(rotation=45, ha='right')
+    # Ajustamos también el tamaño de los títulos y etiquetas para que vayan acorde
+    plt.title(f'MC - {nombre_metodo}', fontsize=30, pad=20)
+    plt.ylabel('Clase real', fontsize=16)
+    plt.xlabel('Clase predicha', fontsize=16)
     
-  
-    plt.figtext(0.1, 0.45, texto_pdf, fontsize=10, family='monospace', va='top')
-
+    # Agrandamos la fuente de las etiquetas de las clases en los ejes
+    plt.xticks(rotation=30, ha='center', fontsize=20)
+    plt.yticks(rotation=0, fontsize=20)
+    
+    # Aseguramos la ruta y guardamos el PDF ajustado
     carpeta_destino = os.path.join("TFG", "estadisticas")
-    
-    # Nos aseguramos de que la carpeta exista (si no, la crea automáticamente)
     os.makedirs(carpeta_destino, exist_ok=True)
     
-    # Construimos la ruta completa del archivo
     nombre_archivo = f"Estadísticas_{nombre_metodo}.pdf"
     ruta_completa = os.path.join(carpeta_destino, nombre_archivo)
     
-    # Guardamos el PDF en la ruta completa establecida
+    # bbox_inches='tight' se encargará de ajustar los márgenes para que no se corten los textos de los ejes
     plt.savefig(ruta_completa, format='pdf', bbox_inches='tight')
     plt.close()
     
-    print(f"\n[+] Gráfica y estadísticas guardadas exitosamente en: {ruta_completa}")
+    print(f"\n[+] Gráfica guardada exitosamente (Métricas solo por terminal) en: {ruta_completa}")
     print("="*50)
-
 
 def evaluacionGlobal():
     print("\n--- FASE 4: EVALUACIÓN MASIVA CON MATRIZ DE CONFUSIÓN ---")
@@ -590,16 +595,16 @@ def evaluacionGlobal():
     elif opc_test == '2':
         carpetaTests = "TFG/tests/testWhatsApp"
         etiqueta = "WHATSAPP"
-        dirMaestrasNP = carpetaMaestrasNoiseprint
-        dirMaestrasPRNU = carpetaMaestrasPRNU     
+        dirMaestrasNP = "TFG/maestras/maestrasNoiseprintWhatsApp"
+        dirMaestrasPRNU = "TFG/maestras/maestrasPRNUWhatsApp"
     elif opc_test == '3':
         carpetaTests = "TFG/tests/testDevice"
         etiqueta = "DEVICE"
         dirMaestrasNP = "TFG/maestras/maestrasNoiseprintDevice"
         dirMaestrasPRNU = "TFG/maestras/maestrasPRNUDevice"     
     elif opc_test == '4':
-        carpetaTests = "TFG/tests/testFiltroLineal"
-        etiqueta = "FILTRO LINEAL"
+        carpetaTests = "TFG/tests/testFiltroLinealSevero"
+        etiqueta = "FILTRO LINEAL SEVERO"
         dirMaestrasNP = "TFG/maestras/maestrasNoiseprintFiltroLineal" 
         dirMaestrasPRNU = "TFG/maestras/maestrasPRNUFiltroLineal"
     elif opc_test == '5':
@@ -619,6 +624,8 @@ def evaluacionGlobal():
     if not os.path.exists(carpetaTests):
         print(f"Error: No existe la carpeta '{carpetaTests}'.")
         return
+    
+    carpeta_cache_global = os.path.join("TFG", "huellasTests", etiqueta)
 
     # Cargar maestras
     maestras_np = {}
@@ -634,8 +641,8 @@ def evaluacionGlobal():
 
     modelos_test = [d for d in os.listdir(carpetaTests) if os.path.isdir(os.path.join(carpetaTests, d))]
     
-    modelos_pred_np = list(maestras_np.keys()) + ["Desconocido"]
-    modelos_pred_prnu = list(maestras_prnu.keys()) + ["Desconocido"]
+    modelos_pred_np = list(maestras_np.keys())
+    modelos_pred_prnu = list(maestras_prnu.keys())
     
     # Listas para almacenar resultados reales y predichos para ambas técnicas, así como las distancias y PCE para análisis adicional
     lista_reales = []
@@ -658,26 +665,53 @@ def evaluacionGlobal():
             
         print(f"\n-> Evaluando {total_fotos} fotos del modelo real: [ {modelo_real.upper()} ]")
 
+        # Carpetas de caché específicas por método
+        cache_modelo_np = os.path.join(carpeta_cache_global, "Noiseprint", modelo_real)
+        cache_modelo_prnu = os.path.join(carpeta_cache_global, "PRNU", modelo_real)
+        os.makedirs(cache_modelo_np, exist_ok=True)
+        os.makedirs(cache_modelo_prnu, exist_ok=True)
+
         for i, foto_path in enumerate(listaFotos):
             nombreFoto = os.path.basename(foto_path)
             print(f"   Analizando {i+1}/{total_fotos}: {nombreFoto}...", end=" ")
+
+            nombreSinExt = os.path.splitext(nombreFoto)[0]
+            # Formatos e hilos de guardado según tus funciones de extracción originales:
+            ruta_cache_np = os.path.join(cache_modelo_np, f"{nombreSinExt}.npz") # <-- NOISEPRINT USA .npz
+            ruta_cache_prnu = os.path.join(cache_modelo_prnu, f"{nombreSinExt}.npy") # <-- PRNU USA .npy
             
             try:
+                if os.path.exists(ruta_cache_np):
+                    datos_npz = np.load(ruta_cache_np)
+                    huella_test_np = datos_npz['noiseprint']
+                else:
                 # Extraemos ambas huellas al vuelo (Noiseprint y PRNU) para esta foto de prueba
-                img_np, _ = imread2f(foto_path, channel=1)
-                img_prnu = np.asarray(Image.open(foto_path))
-                try: QF = jpeg_qtableinv(foto_path)
-                except: QF = 200
+                    img_np, _ = imread2f(foto_path, channel=1)
+                    img_prnu = np.asarray(Image.open(foto_path))
+                    try: QF = jpeg_qtableinv(foto_path)
+                    except: QF = 200
 
-                res_np = genNoiseprint(img_np, QF)
-                res_prnu = extract_single(img_prnu)
+                    res_np = genNoiseprint(img_np, QF)
+                    h, w = res_np.shape
+                    cy, cx = h // 2, w // 2
+                    dy, dx = tamañoRecorte // 2, tamañoRecorte // 2
+                    huella_test_np = res_np[cy-dy:cy+dy, cx-dx:cx+dx]
+                    np.savez(ruta_cache_np, noiseprint=huella_test_np, QF=QF)
 
-                h, w = res_np.shape
-                cy, cx = h // 2, w // 2
-                dy, dx = tamañoRecorte // 2, tamañoRecorte // 2
-                
-                huella_test_np = res_np[cy-dy:cy+dy, cx-dx:cx+dx]
-                huella_test_prnu = res_prnu[cy-dy:cy+dy, cx-dx:cx+dx]
+
+                if os.path.exists(ruta_cache_prnu):
+                    huella_test_prnu = np.load(ruta_cache_prnu)
+                else:
+                    img_prnu = np.asarray(Image.open(foto_path))
+                    res_prnu = extract_single(img_prnu)
+                    
+                    h, w = res_prnu.shape
+                    cy, cx = h // 2, w // 2
+                    dy, dx = tamañoRecorte // 2, tamañoRecorte // 2
+                    huella_test_prnu = res_prnu[cy-dy:cy+dy, cx-dx:cx+dx]
+                    
+                    # Guardamos respetando tu archivo npy plano original
+                    np.save(ruta_cache_prnu, huella_test_prnu)
 
                 # --- COMPARACIÓN NOISEPRINT ---
                 mejor_np = "Desconocido"
@@ -710,9 +744,10 @@ def evaluacionGlobal():
 
             except Exception as e:
                 print(f" ERROR ({e})")
-                lista_reales.append(modelo_real)
-                lista_pred_np.append("Desconocido")
-                lista_pred_prnu.append("Desconocido")
+                continue
+                #lista_reales.append(modelo_real)
+                #lista_pred_np.append("Desconocido")
+                #lista_pred_prnu.append("Desconocido")
 
     # MÉTRICAS Y PDF
     evaluar_y_generar_pdf(lista_reales, lista_pred_np, modelos_pred_np, f"NOISEPRINT_{etiqueta}", lista_distancias_np, "Distancia Euclidiana")
@@ -730,11 +765,11 @@ def crearDatasetFiltroLineal():
     Ecuación matemática aplicada: Y = alpha * X + beta
     """
     carpeta_origen = "TFG/tests/test"
-    carpeta_destino = "TFG/tests/testFiltroLineal"
+    carpeta_destino = "TFG/tests/testFiltroLinealSevero"
     
     # Parámetros de la transformación lineal
-    alpha = 1.2 # Factor de contraste (>1 aumenta, <1 disminuye)
-    beta = 30 # Factor de brillo (valores positivos aclaran, negativos oscurecen)
+    alpha = 1.4 # Factor de contraste (>1 aumenta, <1 disminuye)
+    beta = 80 # Factor de brillo (valores positivos aclaran, negativos oscurecen)
     
     print("\n" + "="*50)
     print(" INICIANDO APLICACIÓN DE FILTRO LINEAL (BRILLO Y CONTRASTE)")
@@ -971,9 +1006,9 @@ def main():
         elif opcion == '11':
             # Para probar la generación de PDF
             print("\nGenerando PDF de prueba...")
-            clases = ["iphone14", "iphone15", "samsungS21", "Desconocido"]
-            reales =       ["iphone14", "iphone14", "iphone15", "samsungS21", "samsungS21"]
-            predicciones = ["iphone14", "Desconocido", "iphone15", "iphone15", "samsungS21"]
+            clases = ["iphone14", "iphone15", "samsungS21", "samsungNote10","samsungNote10_flatfield"]
+            reales =       ["iphone14", "iphone14", "iphone15", "samsungS21", "samsungS21", "samsungNote10", "samsungNote10_flatfield"]
+            predicciones = ["iphone14", "samsungNote10", "iphone15", "iphone15", "samsungS21", "samsungNote10", "samsungNote10_flatfield"]
             evaluar_y_generar_pdf(reales, predicciones, clases, "PRUEBA_RAPIDA")
         elif opcion == '12':
             print("¡Bye!")

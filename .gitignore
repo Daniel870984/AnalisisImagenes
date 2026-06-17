@@ -85,6 +85,7 @@ noiseprint-master/noiseprint-master/TFG/tests/testBN/
 # Ignorar huellas individuales de cada foto
 noiseprint-master/noiseprint-master/TFG/huellas/huellasNoiseprint/
 noiseprint-master/noiseprint-master/TFG/huellas/huellasPRNU/
+noiseprint-master/noiseprint-master/TFG/huellasTests
 
 # ==========================================
 # REGLAS EXCEPCIONALES: Las huellas maestras SÍ se suben
